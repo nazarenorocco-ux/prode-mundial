@@ -144,8 +144,10 @@ export default function Admin() {
       return
     }
 
-    // Recalcular todos los puntos con la función que ya funciona
-    const { error: pointsError } = await supabase.rpc('calculate_points')
+    // Recalcular todos los puntos
+    const { data: pointsData, error: pointsError } = await supabase.rpc('calculate_points')
+
+    console.log('calculate_points resultado:', pointsData, pointsError)
 
     if (pointsError) {
       alert('Error al calcular puntos: ' + pointsError.message)

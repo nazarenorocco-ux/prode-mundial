@@ -2,12 +2,34 @@ import { useState } from 'react'
 import { supabase, getFlagUrl } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
-export default function PredictionForm({ match, existingPrediction, locked, onSaved }) {
+export default function PredictionForm({ match, existingPrediction, onSaved }) {
   const { user } = useAuth()
   const [homeScore, setHomeScore] = useState(existingPrediction?.home_score ?? '')
   const [awayScore, setAwayScore] = useState(existingPrediction?.away_score ?? '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  // Calcular si está bloqueado directamente acá
+  const isLocked = () => {
+    const matchTime = new Date(match.match_date)
+    const now = new Date()
+    const diffMs = matchTime - now
+    const diffMinutes = diffMs / (1000 * 60)
+    return diffMinutes <= 30 || match.status === 'finished'
+  }
+
+  const locked = isLocked()
+
+  const getLockMessage = () => {
+    if (match.status === 'finished') return '🔒 Partido finalizado'
+    const matchTime = new Date(match.match_date)
+    const now = new Date()
+    const diffMs = matchTime - now
+    const diffMinutes = Math.round(diffMs / (1000 * 60))
+    if (diffMinutes <= 0) return '🔒 Partido en curso'
+    if (diffMinutes <= 30) return `🔒 Cierra en ${diffMinutes} min`
+    return null
+  }
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr)
@@ -20,6 +42,7 @@ export default function PredictionForm({ match, existingPrediction, locked, onSa
   }
 
   const handleSave = async () => {
+    if (locked) return
     if (homeScore === '' || awayScore === '') return
     setSaving(true)
 
@@ -30,15 +53,19 @@ export default function PredictionForm({ match, existingPrediction, locked, onSa
       away_score: parseInt(awayScore)
     }
 
-    if (existingPrediction) {
-      await supabase
-        .from('predictions')
-        .update(payload)
-        .eq('id', existingPrediction.id)
-    } else {
-      await supabase
-        .from('predictions')
-        .insert(payload)
+    const { error } = existingPrediction
+      ? await supabase
+          .from('predictions')
+          .update(payload)
+          .eq('id', existingPrediction.id)
+      : await supabase
+          .from('predictions')
+          .insert(payload)
+
+    if (error) {
+      alert(error.message)
+      setSaving(false)
+      return
     }
 
     setSaving(false)
@@ -47,8 +74,10 @@ export default function PredictionForm({ match, existingPrediction, locked, onSa
     onSaved()
   }
 
+  const lockMessage = getLockMessage()
+
   return (
-    <div className="match-card">
+    <div className={`match-card ${locked ? 'match-card-locked' : ''}`}>
       <div className="match-header">
         <div className="match-teams">
           <span>
@@ -69,8 +98,11 @@ export default function PredictionForm({ match, existingPrediction, locked, onSa
             {match.away_team}
           </span>
         </div>
+
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          {locked && <span className="badge badge-locked">🔒 Cerrado</span>}
+          {lockMessage && (
+            <span className="badge badge-locked">{lockMessage}</span>
+          )}
           {saved && <span className="badge badge-saved">✓ Guardado</span>}
         </div>
       </div>
@@ -101,13 +133,26 @@ export default function PredictionForm({ match, existingPrediction, locked, onSa
             placeholder="0"
           />
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={handleSave}
-          disabled={locked || saving || homeScore === '' || awayScore === ''}
-        >
-          {saving ? 'Guardando...' : existingPrediction ? 'Actualizar' : 'Guardar'}
-        </button>
+
+        {!locked && (
+          <button
+            className="btn btn-primary"
+            onClick={handleSave}
+            disabled={saving || homeScore === '' || awayScore === ''}
+          >
+            {saving ? 'Guardando...' : existingPrediction ? 'Actualizar' : 'Guardar'}
+          </button>
+        )}
+
+        {locked && existingPrediction && (
+          <div style={{
+            fontSize: '0.9rem',
+            color: 'var(--text-muted)',
+            fontWeight: '600'
+          }}>
+            Tu pronóstico: {existingPrediction.home_score} - {existingPrediction.away_score}
+          </div>
+        )}
       </div>
     </div>
   )

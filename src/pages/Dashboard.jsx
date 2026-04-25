@@ -8,6 +8,7 @@ export default function Dashboard() {
   const [matches, setMatches] = useState([])
   const [predictions, setPredictions] = useState({})
   const [loading, setLoading] = useState(true)
+  const [activeGroup, setActiveGroup] = useState(null)
 
   useEffect(() => {
     fetchData()
@@ -32,13 +33,12 @@ export default function Dashboard() {
     setMatches(matchesData || [])
     setPredictions(predsMap)
     setLoading(false)
-  }
 
-  const isLocked = (matchDate) => {
-    const kickoff = new Date(matchDate)
-    const now = new Date()
-    const diff = kickoff - now
-    return diff < 60 * 60 * 1000
+    // Setear el primer grupo como activo
+    if (matchesData?.length > 0) {
+      const firstGroup = matchesData[0].group_name || 'Sin grupo'
+      setActiveGroup(firstGroup)
+    }
   }
 
   // Agrupar partidos por grupo
@@ -48,6 +48,8 @@ export default function Dashboard() {
     acc[group].push(match)
     return acc
   }, {})
+
+  const groups = Object.keys(groupedMatches).sort()
 
   if (loading) return (
     <div className="main-container">
@@ -62,20 +64,30 @@ export default function Dashboard() {
         <p>Ingresá el resultado que creés que va a salir en cada partido</p>
       </div>
 
-      {Object.keys(groupedMatches).sort().map(group => (
-        <div key={group}>
-          <div className="group-title">Grupo {group}</div>
-          {groupedMatches[group].map(match => (
-            <PredictionForm
-              key={match.id}
-              match={match}
-              existingPrediction={predictions[match.id]}
-              locked={isLocked(match.match_date)}
-              onSaved={fetchData}
-            />
-          ))}
-        </div>
-      ))}
+      {/* Pestañas de grupos */}
+      <div className="group-tabs">
+        {groups.map(group => (
+          <button
+            key={group}
+            className={`group-tab ${activeGroup === group ? 'active' : ''}`}
+            onClick={() => setActiveGroup(group)}
+          >
+            Grupo {group}
+          </button>
+        ))}
+      </div>
+
+      {/* Partidos del grupo activo */}
+      <div className="group-matches">
+        {activeGroup && groupedMatches[activeGroup]?.map(match => (
+          <PredictionForm
+            key={match.id}
+            match={match}
+            existingPrediction={predictions[match.id]}
+            onSaved={fetchData}
+          />
+        ))}
+      </div>
     </div>
   )
 }
