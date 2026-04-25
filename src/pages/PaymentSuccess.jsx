@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
+import { supabase } from '../supabase'
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams()
