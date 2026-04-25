@@ -1,9 +1,10 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
   const { user, isAdmin, signOut } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const handleSignOut = async () => {
     await signOut()
@@ -15,18 +16,38 @@ export default function Navbar() {
       <Link to="/" className="navbar-brand">
         ⚽ Prode Mundial 2026
       </Link>
-      <div className="navbar-links">
+      <div className="navbar-actions">
         {user ? (
           <>
-            <Link to="/">Predicciones</Link>
-            <Link to="/leaderboard">Tabla</Link>
-            {isAdmin && <Link to="/admin">Admin</Link>}
-            <button onClick={handleSignOut}>Salir</button>
+            <Link
+              to="/"
+              className={`navbar-link ${location.pathname === '/' ? 'active' : ''}`}
+            >
+              Predicciones
+            </Link>
+            <Link
+              to="/leaderboard"
+              className={`navbar-link ${location.pathname === '/leaderboard' ? 'active' : ''}`}
+            >
+              Tabla
+            </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`navbar-link ${location.pathname === '/admin' ? 'active' : ''}`}
+              >
+                Admin
+              </Link>
+            )}
+            <span className="navbar-user">{user.email}</span>
+            <button className="btn btn-secondary" onClick={handleSignOut}>
+              Salir
+            </button>
           </>
         ) : (
           <>
-            <Link to="/login">Ingresar</Link>
-            <Link to="/register">Registrarse</Link>
+            <Link to="/login" className="navbar-link">Ingresar</Link>
+            <Link to="/register" className="navbar-link">Registrarse</Link>
           </>
         )}
       </div>
