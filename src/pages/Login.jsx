@@ -27,7 +27,7 @@ export default function Login() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1 className="auth-title">⚽ Prode 2026</h1>
+        <h1 className="auth-title">⚽ Prode Mundial 2026</h1>
         <p className="auth-subtitle">Ingresá a tu cuenta</p>
 
         {error && <div className="alert alert-error">{error}</div>}

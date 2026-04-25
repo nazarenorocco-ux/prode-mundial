@@ -65,7 +65,7 @@ export default function Register() {
       <div className="auth-card">
         <h2 className="auth-title">Crear cuenta</h2>
         <p className="auth-subtitle">
-          La inscripción tiene un costo de <strong>$40.000 ARS</strong>
+          La inscripción se realiza con unan donación de <strong>$40.000 ARS</strong>
         </p>
 
         {error && <div className="auth-error">{error}</div>}
@@ -109,7 +109,7 @@ export default function Register() {
             className="auth-button"
             disabled={loading}
           >
-            {loading ? 'Procesando...' : 'Registrarme y pagar →'}
+            {loading ? 'Procesando...' : 'Registrarme y Donar →'}
           </button>
         </form>
 
