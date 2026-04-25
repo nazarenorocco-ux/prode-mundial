@@ -71,7 +71,7 @@ export default function Admin() {
 
     // Eliminar usuario de auth (requiere service role, usamos RPC)
     const { error } = await supabase.rpc('delete_user', {
-      user_id_input: player.id
+      user_id: player.id
     })
 
     if (error) {
