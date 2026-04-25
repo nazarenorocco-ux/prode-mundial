@@ -107,7 +107,7 @@ export default function Landing() {
       <section className="landing-hero">
         <div className="hero-overlay" />
         <div className="hero-content">
-          <p className="hero-subtitle">🇦🇷 Argentina &nbsp;·&nbsp; 🇨🇦 Canadá &nbsp;·&nbsp; 🇲🇽 México</p>
+          <p className="hero-subtitle">EU Estados Unidos &nbsp;·&nbsp; 🇨🇦 Canadá &nbsp;·&nbsp; 🇲🇽 México</p>
           <h1 className="hero-title">
             Prode Mundial<br /><span>2026</span>
           </h1>
@@ -133,7 +133,7 @@ export default function Landing() {
           <div className="stat-card pool-card">
             <p className="stat-label">Pozo total</p>
             <div className="stat-number pool-amount">{formatARS(totalPool)}</div>
-            <p className="stat-sublabel">80% de la recaudación</p>
+           
           </div>
         </div>
       </section>
