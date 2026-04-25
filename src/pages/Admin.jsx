@@ -57,19 +57,16 @@ export default function Admin() {
 
     setDeletingPlayer(player.id)
 
-    // Eliminar predicciones del jugador
     await supabase
       .from('predictions')
       .delete()
       .eq('user_id', player.id)
 
-    // Eliminar perfil
     await supabase
       .from('profiles')
       .delete()
       .eq('id', player.id)
 
-    // Eliminar usuario de auth (requiere service role, usamos RPC)
     const { error } = await supabase.rpc('delete_user', {
       user_id: player.id
     })
@@ -131,17 +128,7 @@ export default function Admin() {
     const homeScore = parseInt(score.home_score)
     const awayScore = parseInt(score.away_score)
 
-    if (match.status === 'finished') {
-      const { error: resetError } = await supabase.rpc('reset_match_points', {
-        match_id_input: match.id
-      })
-      if (resetError) {
-        alert('Error al resetear puntos: ' + resetError.message)
-        setUpdating(null)
-        return
-      }
-    }
-
+    // Guardar resultado del partido
     const { error: matchError } = await supabase
       .from('matches')
       .update({
@@ -157,35 +144,11 @@ export default function Admin() {
       return
     }
 
-    const { data: predictions } = await supabase
-      .from('predictions')
-      .select('*')
-      .eq('match_id', match.id)
+    // Recalcular todos los puntos con la función que ya funciona
+    const { error: pointsError } = await supabase.rpc('calculate_points')
 
-    for (const pred of predictions || []) {
-      let points = 0
-
-      const realOutcome =
-        homeScore > awayScore ? 'home' :
-        awayScore > homeScore ? 'away' : 'draw'
-
-      const predOutcome =
-        pred.home_score > pred.away_score ? 'home' :
-        pred.away_score > pred.home_score ? 'away' : 'draw'
-
-      if (realOutcome === predOutcome) {
-        points += 1
-        if (pred.home_score === homeScore && pred.away_score === awayScore) {
-          points += 2
-        }
-      }
-
-      if (points > 0) {
-        await supabase.rpc('increment_points', {
-          user_id_input: pred.user_id,
-          points_input: points
-        })
-      }
+    if (pointsError) {
+      alert('Error al calcular puntos: ' + pointsError.message)
     }
 
     setEditing(prev => ({ ...prev, [match.id]: false }))
