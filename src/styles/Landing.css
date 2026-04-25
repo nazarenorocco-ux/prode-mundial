@@ -79,12 +79,21 @@
   letter-spacing: 2px;
 }
 
+/* --- BOTONES HERO --- */
+.hero-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
 .hero-btn {
   background: var(--accent-primary);
   color: white;
   border: none;
   padding: 1rem 3rem;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 700;
   border-radius: 50px;
   cursor: pointer;
@@ -97,6 +106,20 @@
 .hero-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 0 50px rgba(99, 102, 241, 0.8);
+}
+
+.hero-btn-secondary {
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.9);
+  box-shadow: none;
+}
+
+.hero-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #fff;
+  color: #fff;
+  box-shadow: none;
 }
 
 .hero-scroll-hint {
@@ -549,6 +572,16 @@
   .landing-prizes,
   .landing-matches {
     padding: 3rem 1.5rem;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .hero-btn {
+    width: 100%;
+    max-width: 280px;
   }
 }
 

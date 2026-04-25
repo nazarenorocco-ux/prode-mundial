@@ -107,14 +107,19 @@ export default function Landing() {
       <section className="landing-hero">
         <div className="hero-overlay" />
         <div className="hero-content">
-          <p className="hero-subtitle">EU Estados Unidos &nbsp;·&nbsp; 🇨🇦 Canadá &nbsp;·&nbsp; 🇲🇽 México</p>
+          <p className="hero-subtitle">Estados Unidos &nbsp;·&nbsp; Canadá &nbsp;·&nbsp; México</p>
           <h1 className="hero-title">
             Prode Mundial<br /><span>2026</span>
           </h1>
           <p className="hero-date">Junio — Julio 2026</p>
-          <button className="hero-btn" onClick={() => navigate('/register')}>
-            ¡Anotate ahora!
-          </button>
+          <div className="hero-buttons">
+            <button className="hero-btn" onClick={() => navigate('/register')}>
+              ¡Anotate ahora!
+            </button>
+            <button className="hero-btn hero-btn-secondary" onClick={() => navigate('/login')}>
+              Ya tengo cuenta
+            </button>
+          </div>
         </div>
         <div className="hero-scroll-hint">
           <span>↓</span>
@@ -133,7 +138,6 @@ export default function Landing() {
           <div className="stat-card pool-card">
             <p className="stat-label">Pozo total</p>
             <div className="stat-number pool-amount">{formatARS(totalPool)}</div>
-           
           </div>
         </div>
       </section>
@@ -233,9 +237,14 @@ export default function Landing() {
       <section className="landing-cta">
         <h2>¿Estás listo para competir?</h2>
         <p>Anotate antes de que empiece el torneo y ganá tu parte del pozo</p>
-        <button className="hero-btn" onClick={() => navigate('/register')}>
-          ¡Quiero participar!
-        </button>
+        <div className="hero-buttons">
+          <button className="hero-btn" onClick={() => navigate('/register')}>
+            ¡Quiero participar!
+          </button>
+          <button className="hero-btn hero-btn-secondary" onClick={() => navigate('/login')}>
+            Ya tengo cuenta
+          </button>
+        </div>
       </section>
 
     </div>
