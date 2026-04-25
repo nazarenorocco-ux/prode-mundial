@@ -8,33 +8,37 @@ export default function Navbar() {
 
   const handleSignOut = async () => {
     await signOut()
-    navigate('/login')
+    navigate('/')
   }
+
+  const isActive = (path) => location.pathname === path ? 'active' : ''
 
   return (
     <nav className="navbar">
-      <Link to="/" className="navbar-brand">
+      {/* Logo → /dashboard si está logueado, / si no */}
+      <Link to={user ? '/dashboard' : '/'} className="navbar-brand">
         ⚽ Prode Mundial 2026
       </Link>
+
       <div className="navbar-actions">
         {user ? (
           <>
             <Link
-              to="/"
-              className={`navbar-link ${location.pathname === '/' ? 'active' : ''}`}
+              to="/dashboard"
+              className={`navbar-link ${isActive('/dashboard')}`}
             >
               Predicciones
             </Link>
             <Link
               to="/leaderboard"
-              className={`navbar-link ${location.pathname === '/leaderboard' ? 'active' : ''}`}
+              className={`navbar-link ${isActive('/leaderboard')}`}
             >
               Tabla
             </Link>
             {isAdmin && (
               <Link
                 to="/admin"
-                className={`navbar-link ${location.pathname === '/admin' ? 'active' : ''}`}
+                className={`navbar-link ${isActive('/admin')}`}
               >
                 Admin
               </Link>
@@ -46,8 +50,18 @@ export default function Navbar() {
           </>
         ) : (
           <>
-            <Link to="/login" className="navbar-link">Ingresar</Link>
-            <Link to="/register" className="navbar-link">Registrarse</Link>
+            <Link
+              to="/login"
+              className={`navbar-link ${isActive('/login')}`}
+            >
+              Ingresar
+            </Link>
+            <Link
+              to="/register"
+              className="btn btn-primary"
+            >
+              Registrarse
+            </Link>
           </>
         )}
       </div>

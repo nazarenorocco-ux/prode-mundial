@@ -1,0 +1,243 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
+import { calculatePrizes, formatARS, PRIZE_TIERS, ENTRY_FEE, PRIZE_POOL_PERCENTAGE } from '../utils/prizeCalculator';
+import '../styles/Landing.css';
+
+const MEDAL_ICONS = ['🥇', '🥈', '🥉'];
+const POSITION_LABELS = [
+  '1er Premio', '2do Premio', '3er Premio',
+  '4to Premio', '5to Premio', '6to Premio',
+  '7mo Premio', '8vo Premio', '9no Premio',
+  '10mo Premio', '11mo Premio', '12mo Premio'
+];
+
+function getNextTierInfo(activePlayers) {
+  const currentTierIndex = PRIZE_TIERS.findIndex(t => activePlayers <= t.maxPlayers);
+  const currentTier = PRIZE_TIERS[currentTierIndex];
+  const nextTier = PRIZE_TIERS[currentTierIndex + 1];
+
+  if (!nextTier) return null;
+
+  const playersNeeded = currentTier.maxPlayers - activePlayers + 1;
+  const nextPool = (currentTier.maxPlayers + 1) * ENTRY_FEE * PRIZE_POOL_PERCENTAGE;
+
+  return {
+    playersNeeded,
+    nextPrizes: nextTier.prizes,
+    nextFirstPrize: Math.round(nextPool * nextTier.percentages[0])
+  };
+}
+
+export default function Landing() {
+  const navigate = useNavigate();
+  const [activePlayers, setActivePlayers] = useState(0);
+  const [displayCount, setDisplayCount] = useState(0);
+  const [upcomingMatches, setUpcomingMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'activo');
+
+      setActivePlayers(count || 0);
+
+      const { data: matches } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('status', 'upcoming')
+        .order('match_date', { ascending: true })
+        .limit(5);
+
+      setUpcomingMatches(matches || []);
+      setLoading(false);
+    }
+
+    fetchData();
+  }, []);
+
+  // Contador animado
+  useEffect(() => {
+    if (activePlayers === 0) {
+      setDisplayCount(0);
+      return;
+    }
+
+    let start = 0;
+    const duration = 1500;
+    const steps = 60;
+    const increment = activePlayers / steps;
+    const stepDuration = duration / steps;
+
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= activePlayers) {
+        setDisplayCount(activePlayers);
+        clearInterval(timer);
+      } else {
+        setDisplayCount(Math.floor(start));
+      }
+    }, stepDuration);
+
+    return () => clearInterval(timer);
+  }, [activePlayers]);
+
+  const playerCount = Math.max(activePlayers, 1);
+  const { totalPool, prizes } = calculatePrizes(playerCount);
+  const nextTierInfo = getNextTierInfo(playerCount);
+
+  const formatMatchDate = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-AR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <div className="landing">
+
+      {/* ── HERO ── */}
+      <section className="landing-hero">
+        <div className="hero-overlay" />
+        <div className="hero-content">
+          <p className="hero-subtitle">🇦🇷 Argentina &nbsp;·&nbsp; 🇨🇦 Canadá &nbsp;·&nbsp; 🇲🇽 México</p>
+          <h1 className="hero-title">
+            Prode Mundial<br /><span>2026</span>
+          </h1>
+          <p className="hero-date">Junio — Julio 2026</p>
+          <button className="hero-btn" onClick={() => navigate('/register')}>
+            ¡Anotate ahora!
+          </button>
+        </div>
+        <div className="hero-scroll-hint">
+          <span>↓</span>
+          scroll
+        </div>
+      </section>
+
+      {/* ── PARTICIPANTES + POZO ── */}
+      <section className="landing-stats">
+        <div className="stats-container">
+          <div className="stat-card participants-card">
+            <p className="stat-label">Jugadores confirmados</p>
+            <div className="stat-number">{displayCount.toLocaleString('es-AR')}</div>
+            <p className="stat-sublabel">con pago confirmado</p>
+          </div>
+          <div className="stat-card pool-card">
+            <p className="stat-label">Pozo total</p>
+            <div className="stat-number pool-amount">{formatARS(totalPool)}</div>
+            <p className="stat-sublabel">80% de la recaudación</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── PREMIOS ── */}
+      <section className="landing-prizes">
+        <h2 className="section-title">💰 Premios actuales</h2>
+        <p className="section-subtitle">
+          Los premios se actualizan automáticamente con cada nuevo participante
+        </p>
+
+        <div className="prizes-grid">
+          {prizes.map((prize, index) => (
+            <div
+              key={prize.position}
+              className={`prize-card ${index < 3 ? 'prize-top' : 'prize-minor'}`}
+            >
+              <div className="prize-icon">
+                {index < 3 ? MEDAL_ICONS[index] : `${prize.position}°`}
+              </div>
+              <div className="prize-label">{POSITION_LABELS[index]}</div>
+              <div className="prize-amount">{formatARS(prize.amount)}</div>
+              <div className="prize-pct">{(prize.percentage * 100).toFixed(0)}% del pozo</div>
+            </div>
+          ))}
+        </div>
+
+        {nextTierInfo && (
+          <div className="prizes-next-tier">
+            🚀 Con <strong>{nextTierInfo.playersNeeded} jugadores más</strong> se suma un premio extra
+            y el 1er puesto sube a <strong>{formatARS(nextTierInfo.nextFirstPrize)}</strong>
+          </div>
+        )}
+      </section>
+
+      {/* ── PUNTUACION ── */}
+      <section className="landing-scoring">
+        <h2 className="section-title">📊 Sistema de puntuación</h2>
+        <div className="scoring-grid">
+          <div className="scoring-card exact">
+            <div className="scoring-points">3</div>
+            <div className="scoring-label">puntos</div>
+            <div className="scoring-desc">
+              Resultado exacto<br />
+              <span>Ej: predecís 2-1 y sale 2-1</span>
+            </div>
+          </div>
+          <div className="scoring-card outcome">
+            <div className="scoring-points">1</div>
+            <div className="scoring-label">punto</div>
+            <div className="scoring-desc">
+              Ganador correcto<br />
+              <span>Ej: predecís 2-1 y sale 3-0</span>
+            </div>
+          </div>
+          <div className="scoring-card zero">
+            <div className="scoring-points">0</div>
+            <div className="scoring-label">puntos</div>
+            <div className="scoring-desc">
+              Resultado incorrecto<br />
+              <span>Ej: predecís 2-1 y sale 0-0</span>
+            </div>
+          </div>
+        </div>
+        <div className="scoring-note">
+          ⏱ Las predicciones se cierran <strong>30 minutos antes</strong> de cada partido
+        </div>
+      </section>
+
+      {/* ── PROXIMOS PARTIDOS ── */}
+      <section className="landing-matches">
+        <h2 className="section-title">📅 Próximos partidos</h2>
+        {loading ? (
+          <p className="loading-text">Cargando partidos...</p>
+        ) : upcomingMatches.length === 0 ? (
+          <p className="loading-text">⚽ Próximamente...</p>
+        ) : (
+          <div className="matches-list">
+            {upcomingMatches.map(match => (
+              <div key={match.id} className="match-card">
+                <div className="match-teams">
+                  <span className="team">{match.home_team}</span>
+                  <span className="vs">vs</span>
+                  <span className="team">{match.away_team}</span>
+                </div>
+                <div className="match-info">
+                  <span className="match-group">{match.group_name}</span>
+                  <span className="match-date">{formatMatchDate(match.match_date)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── CTA FINAL ── */}
+      <section className="landing-cta">
+        <h2>¿Estás listo para competir?</h2>
+        <p>Anotate antes de que empiece el torneo y ganá tu parte del pozo</p>
+        <button className="hero-btn" onClick={() => navigate('/register')}>
+          ¡Quiero participar!
+        </button>
+      </section>
+
+    </div>
+  );
+}
