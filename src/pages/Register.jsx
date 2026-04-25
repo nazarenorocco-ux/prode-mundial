@@ -65,7 +65,7 @@ export default function Register() {
       <div className="auth-card">
         <h2 className="auth-title">Crear cuenta</h2>
         <p className="auth-subtitle">
-          La inscripción se realiza con unan donación de <strong>$40.000 ARS</strong>
+          La inscripción se realiza con una donación de <strong>$40.000 ARS</strong>
         </p>
 
         {error && <div className="auth-error">{error}</div>}
