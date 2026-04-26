@@ -19,6 +19,7 @@ export default function Admin() {
   const [loadingPlayers, setLoadingPlayers] = useState(false)
   const [deletingPlayer, setDeletingPlayer] = useState(null)
   const [confirmingPlayer, setConfirmingPlayer] = useState(null)
+  const [togglingAdmin, setTogglingAdmin] = useState(null)
 
   useEffect(() => {
     if (loading) return
@@ -47,7 +48,7 @@ export default function Admin() {
     setLoadingPlayers(true)
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, email, points, status, payment_method, created_at')
+      .select('id, username, email, points, status, payment_method, created_at, is_admin')
       .order('created_at', { ascending: false })
 
     if (error) console.error('Error fetching players:', error)
@@ -116,6 +117,34 @@ export default function Admin() {
 
     setDeletingPlayer(null)
     fetchPlayers()
+  }
+
+  const handleToggleAdmin = async (player) => {
+    const action = player.is_admin ? 'quitarle el rol de admin' : 'hacer admin'
+    const ok = window.confirm(
+      `¿Seguro que querés ${action} a "${player.username}"?`
+    )
+    if (!ok) return
+
+    setTogglingAdmin(player.id)
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_admin: !player.is_admin })
+      .eq('id', player.id)
+
+    if (error) {
+      alert('Error al actualizar: ' + error.message)
+      console.error('Toggle admin error:', error)
+    } else {
+      setPlayers(prev =>
+        prev.map(p =>
+          p.id === player.id ? { ...p, is_admin: !p.is_admin } : p
+        )
+      )
+    }
+
+    setTogglingAdmin(null)
   }
 
   const handleScoreChange = (matchId, field, value) => {
@@ -251,14 +280,12 @@ export default function Admin() {
   const mpPlayers = players.filter(p => p.payment_method === 'mercadopago').length
   const manualPlayers = players.filter(p => p.payment_method === 'manual').length
 
-  // 👇 Esperar a que auth termine de cargar antes de mostrar cualquier cosa
   if (loading) return (
     <div className="main-container">
       <p style={{ color: 'var(--text-muted)' }}>Verificando acceso...</p>
     </div>
   )
 
-  // 👇 Si ya cargó y no es admin, no renderizar nada (navigate ya se ejecutó)
   if (!isAdmin) return null
 
   if (initialLoad) return (
@@ -484,12 +511,18 @@ export default function Admin() {
                     justifyContent: 'space-between',
                     padding: '0.8rem 1rem',
                     gap: '1rem',
-                    borderLeft: `4px solid ${player.status === 'activo' ? '#22c55e' : '#f59e0b'}`
+                    borderLeft: `4px solid ${
+                      player.is_admin
+                        ? '#7c3aed'
+                        : player.status === 'activo'
+                          ? '#22c55e'
+                          : '#f59e0b'
+                    }`
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
-                      👤 {player.username || 'Sin nombre'}
+                      {player.is_admin ? '👑' : '👤'} {player.username || 'Sin nombre'}
                     </div>
                     <div style={{
                       fontSize: '0.8rem',
@@ -509,6 +542,20 @@ export default function Admin() {
                       flexWrap: 'wrap',
                       gap: '0.3rem'
                     }}>
+                      {/* Badge admin */}
+                      {player.is_admin && (
+                        <span style={{
+                          fontSize: '0.75rem',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '999px',
+                          background: '#7c3aed22',
+                          color: '#a78bfa',
+                          fontWeight: '600'
+                        }}>
+                          👑 Admin
+                        </span>
+                      )}
+                      {/* Badge estado pago */}
                       <span style={{
                         fontSize: '0.75rem',
                         padding: '0.2rem 0.6rem',
@@ -530,6 +577,7 @@ export default function Admin() {
                     alignItems: 'flex-end',
                     flexShrink: 0
                   }}>
+                    {/* Botón confirmar pago */}
                     {player.status === 'pendiente' && (
                       <button
                         onClick={() => handleConfirmPayment(player)}
@@ -550,6 +598,32 @@ export default function Admin() {
                         {confirmingPlayer === player.id ? 'Confirmando...' : '💵 Confirmar pago'}
                       </button>
                     )}
+
+                    {/* Botón toggle admin */}
+                    <button
+                      onClick={() => handleToggleAdmin(player)}
+                      disabled={togglingAdmin === player.id}
+                      style={{
+                        background: player.is_admin ? '#7c3aed' : '#1d4ed8',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '0.4rem 0.8rem',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        opacity: togglingAdmin === player.id ? 0.6 : 1,
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {togglingAdmin === player.id
+                        ? 'Actualizando...'
+                        : player.is_admin
+                          ? '👑 Quitar Admin'
+                          : '⭐ Hacer Admin'}
+                    </button>
+
+                    {/* Botón eliminar */}
                     <button
                       onClick={() => handleDeletePlayer(player)}
                       disabled={deletingPlayer === player.id}
