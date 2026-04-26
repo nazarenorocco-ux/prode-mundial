@@ -14,32 +14,44 @@ export function AuthProvider({ children }) {
     setIsAdmin(false)
   }
 
+  const fetchProfile = async (userId) => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', userId)
+        .single()
+      console.log('Profile data:', data)
+      setIsAdmin(data?.is_admin || false)
+    } catch (err) {
+      console.error('Error fetchProfile:', err)
+      setIsAdmin(false)
+    }
+  }
+
   useEffect(() => {
+    // 1. Chequear sesión existente al montar
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('Initial session:', session?.user?.email)
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        await fetchProfile(session.user.id)
+      }
+      setLoading(false)
+    })
+
+    // 2. Escuchar cambios posteriores
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth event:', event)
-        
-        try {
-          setUser(session?.user ?? null)
-
-          if (session?.user) {
-            const { data } = await supabase
-              .from('profiles')
-              .select('is_admin')
-              .eq('id', session.user.id)
-              .single()
-            
-            console.log('Profile data:', data)
-            setIsAdmin(data?.is_admin || false)
-          } else {
-            setIsAdmin(false)
-          }
-        } catch (err) {
-          console.error('Error en auth:', err)
+        if (event === 'SIGNED_IN') {
+          setUser(session.user)
+          await fetchProfile(session.user.id)
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null)
           setIsAdmin(false)
-        } finally {
-          setLoading(false)
         }
+        // No tocar loading acá, ya lo manejó getSession
       }
     )
 
