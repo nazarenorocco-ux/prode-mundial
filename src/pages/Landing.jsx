@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { calculatePrizes, formatARS, PRIZE_TIERS, ENTRY_FEE, PRIZE_POOL_PERCENTAGE } from '../utils/prizeCalculator';
 import '../styles/Landing.css';
+import { supabase, getFlagUrl } from '../lib/supabase'
+
 
 const MEDAL_ICONS = ['🥇', '🥈', '🥉'];
 const POSITION_LABELS = [
@@ -208,30 +210,49 @@ export default function Landing() {
       </section>
 
       {/* ── PROXIMOS PARTIDOS ── */}
-      <section className="landing-matches">
-        <h2 className="section-title">📅 Próximos partidos</h2>
-        {loading ? (
-          <p className="loading-text">Cargando partidos...</p>
-        ) : upcomingMatches.length === 0 ? (
-          <p className="loading-text">⚽ Próximamente...</p>
-        ) : (
-          <div className="matches-list">
-            {upcomingMatches.map(match => (
-              <div key={match.id} className="match-card">
-                <div className="match-teams">
-                  <span className="team">{match.home_team}</span>
-                  <span className="vs">vs</span>
-                  <span className="team">{match.away_team}</span>
-                </div>
-                <div className="match-info">
-                  <span className="match-group">{match.group_name}</span>
-                  <span className="match-date">{formatMatchDate(match.match_date)}</span>
-                </div>
-              </div>
-            ))}
+<section className="landing-matches">
+  <h2 className="section-title">📅 Próximos partidos</h2>
+  {loading ? (
+    <p className="loading-text">Cargando partidos...</p>
+  ) : upcomingMatches.length === 0 ? (
+    <p className="loading-text">⚽ Próximamente...</p>
+  ) : (
+    <div className="matches-list">
+      {upcomingMatches.map(match => (
+        <div key={match.id} className="match-card">
+          <div className="match-teams">
+            <span className="team">
+              {getFlagUrl(match.home_flag) && (
+                <img
+                  src={getFlagUrl(match.home_flag)}
+                  alt={match.home_team}
+                  className="flag-img"
+                />
+              )}
+              {match.home_team}
+            </span>
+            <span className="vs">vs</span>
+            <span className="team">
+              {getFlagUrl(match.away_flag) && (
+                <img
+                  src={getFlagUrl(match.away_flag)}
+                  alt={match.away_team}
+                  className="flag-img"
+                />
+              )}
+              {match.away_team}
+            </span>
           </div>
-        )}
-      </section>
+          <div className="match-info">
+            <span className="match-group">{match.group_name}</span>
+            <span className="match-date">{formatMatchDate(match.match_date)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</section>
+
 
       {/* ── CTA FINAL ── */}
       <section className="landing-cta">

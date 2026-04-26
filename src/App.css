@@ -1176,3 +1176,10 @@ body {
     font-size: 1.8rem;
   }
 }
+.flag-img {
+  width: 24px;
+  height: auto;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
