@@ -10,6 +10,11 @@ export function getFlagUrl(flagValue) {
 
   const trimmed = flagValue.trim()
 
+  // Si ya es una URL completa
+  if (trimmed.startsWith('http')) {
+    return trimmed
+  }
+
   // Si ya es un código ISO de 2 letras (ej: "AR", "MX")
   if (/^[A-Z]{2}$/i.test(trimmed)) {
     return `https://flagcdn.com/w40/${trimmed.toLowerCase()}.png`
@@ -31,6 +36,6 @@ export function getFlagUrl(flagValue) {
     return `https://flagcdn.com/w40/${code}.png`
   }
 
-  // Si no matchea nada, retornar null (no string vacío)
+  // Si no matchea nada, retornar null
   return null
 }
