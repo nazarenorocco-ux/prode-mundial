@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 export default function Admin() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, loading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [activeTab, setActiveTab] = useState('results')
@@ -21,9 +21,13 @@ export default function Admin() {
   const [confirmingPlayer, setConfirmingPlayer] = useState(null)
 
   useEffect(() => {
-    if (!isAdmin) navigate('/')
+    if (loading) return
+    if (!isAdmin) {
+      navigate('/')
+      return
+    }
     fetchMatches()
-  }, [location])
+  }, [loading, isAdmin])
 
   useEffect(() => {
     if (activeTab === 'players') fetchPlayers()
@@ -71,7 +75,6 @@ export default function Admin() {
       alert('Error al confirmar pago: ' + error.message)
       console.error('Confirm payment error:', error)
     } else {
-      // Actualizar localmente sin refetch
       setPlayers(prev =>
         prev.map(p =>
           p.id === player.id
@@ -247,6 +250,16 @@ export default function Admin() {
   const pendingPlayers = players.filter(p => p.status === 'pendiente').length
   const mpPlayers = players.filter(p => p.payment_method === 'mercadopago').length
   const manualPlayers = players.filter(p => p.payment_method === 'manual').length
+
+  // 👇 Esperar a que auth termine de cargar antes de mostrar cualquier cosa
+  if (loading) return (
+    <div className="main-container">
+      <p style={{ color: 'var(--text-muted)' }}>Verificando acceso...</p>
+    </div>
+  )
+
+  // 👇 Si ya cargó y no es admin, no renderizar nada (navigate ya se ejecutó)
+  if (!isAdmin) return null
 
   if (initialLoad) return (
     <div className="main-container">
