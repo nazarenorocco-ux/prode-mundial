@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useNavigate, Link } from 'react-router-dom'
 
-// ─── Datos de contacto para transferencia manual ───────────────────────────
 const TRANSFER_INFO = {
   alias: 'borro.214',
   cbu: '0000003100012341234567',
@@ -12,8 +11,46 @@ const TRANSFER_INFO = {
   monto: '$40.000 ARS'
 }
 
-// ─── Modal de transferencia ────────────────────────────────────────────────
-function TransferModal({ onClose }) {
+// ─── PASO 1: Elegir método de pago ────────────────────────────────────────
+function StepPaymentMethod({ onSelect }) {
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        <h2 className="auth-title">¿Cómo querés donar?</h2>
+        <p className="auth-subtitle">
+          La inscripción se realiza con una donación de <strong>$40.000 ARS</strong>
+        </p>
+
+        <div className="payment-buttons" style={{ marginTop: '2rem' }}>
+          <button
+            className="btn-mercadopago"
+            onClick={() => onSelect('mp')}
+          >
+            <span>💳</span>
+            <span>Donar con MercadoPago</span>
+          </button>
+
+          <div className="payment-divider"><span>o</span></div>
+
+          <button
+            className="btn-transfer"
+            onClick={() => onSelect('transfer')}
+          >
+            <span className="btn-icon">🏦</span>
+            <span>Donar por Transferencia Bancaria</span>
+          </button>
+        </div>
+
+        <p className="auth-link" style={{ marginTop: '1.5rem' }}>
+          ¿Ya tenés cuenta? <Link to="/login">Iniciá sesión</Link>
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ─── PASO 2A: Mostrar datos de transferencia ANTES de registrar ────────────
+function StepTransferInfo({ onConfirm, onBack }) {
   const [copied, setCopied] = useState(null)
 
   const copyToClipboard = (text, field) => {
@@ -23,18 +60,36 @@ function TransferModal({ onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>✕</button>
+    <div className="auth-container">
+      <div className="auth-card" style={{ maxWidth: '500px' }}>
 
-        <div className="modal-header">
-          <span className="modal-icon">🏦</span>
-          <h3>Donar por Transferencia</h3>
-          <p>Realizá una transferencia de <strong>{TRANSFER_INFO.monto}</strong> y envianos el comprobante</p>
+        <button
+          onClick={onBack}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#94a3b8',
+            cursor: 'pointer',
+            fontSize: '0.9rem',
+            marginBottom: '1rem',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem'
+          }}
+        >
+          ← Volver
+        </button>
+
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <span style={{ fontSize: '2.5rem' }}>🏦</span>
+          <h2 className="auth-title" style={{ marginTop: '0.5rem' }}>Datos para transferir</h2>
+          <p className="auth-subtitle">
+            Realizá una transferencia de <strong style={{ color: '#63b3ed' }}>{TRANSFER_INFO.monto}</strong> a:
+          </p>
         </div>
 
         <div className="transfer-info">
-
           <div className="transfer-row">
             <span className="transfer-label">Alias</span>
             <div className="transfer-value-group">
@@ -70,11 +125,10 @@ function TransferModal({ onClose }) {
             <span className="transfer-label">Titular</span>
             <span className="transfer-value">{TRANSFER_INFO.titular}</span>
           </div>
-
         </div>
 
         <div className="transfer-contact">
-          <p>📱 Enviá el comprobante por WhatsApp:</p>
+          <p>📱 Después de transferir, enviá el comprobante por WhatsApp:</p>
           <a
             href={`https://wa.me/${TRANSFER_INFO.whatsapp.replace(/\D/g, '')}`}
             target="_blank"
@@ -90,195 +144,203 @@ function TransferModal({ onClose }) {
 
         <div className="transfer-note">
           <span>⚠️</span>
-          <p>Tu cuenta quedará <strong>pendiente</strong> hasta que confirmemos tu pago. Te avisaremos por WhatsApp.</p>
+          <p>Tu cuenta quedará <strong>pendiente</strong> hasta confirmar el pago. Te avisamos por WhatsApp cuando esté activa.</p>
         </div>
 
-        <button className="modal-done-btn" onClick={onClose}>
-          Entendido
+        <button className="modal-done-btn" onClick={onConfirm}>
+          Ya anoté los datos → Crear mi cuenta
         </button>
       </div>
     </div>
   )
 }
 
-// ─── Componente principal ──────────────────────────────────────────────────
-export default function Register() {
+// ─── PASO 2B / 3: Formulario de registro ──────────────────────────────────
+function StepRegisterForm({ paymentMethod, onBack }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(null) // 'mp' | 'manual' | null
-  const [showTransferModal, setShowTransferModal] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
-  // Crear cuenta en Supabase
-  const createAccount = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+
     if (!username.trim() || !email.trim() || !password.trim()) {
-      throw new Error('Completá todos los campos')
+      return setError('Completá todos los campos')
     }
     if (password.length < 6) {
-      throw new Error('La contraseña debe tener mínimo 6 caracteres')
+      return setError('La contraseña debe tener mínimo 6 caracteres')
     }
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { username } }
-    })
-    if (signUpError) throw signUpError
-    if (!data.user) throw new Error('No se pudo crear el usuario')
-
-    const userId = data.user.id
-
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ username, status: 'pendiente' })
-      .eq('id', userId)
-
-    if (profileError) throw profileError
-
-    return userId
-  }
-
-  // Botón MercadoPago
-  const handleMercadoPago = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading('mp')
+    setLoading(true)
 
     try {
-      const userId = await createAccount()
-
-      const response = await fetch('/api/create-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, userEmail: email })
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { username } }
       })
+      if (signUpError) throw signUpError
+      if (!data.user) throw new Error('No se pudo crear el usuario')
 
-      const paymentData = await response.json()
-      if (!paymentData.init_point) throw new Error('No se pudo crear el link de pago')
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          username,
+          status: 'pendiente',
+          payment_method: paymentMethod
+        })
+        .eq('id', data.user.id)
 
-      window.location.href = paymentData.init_point
+      if (profileError) throw profileError
+
+      if (paymentMethod === 'mp') {
+        // Redirigir a MercadoPago
+        const response = await fetch('/api/create-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: data.user.id, userEmail: email })
+        })
+        const paymentData = await response.json()
+        if (!paymentData.init_point) throw new Error('No se pudo crear el link de pago')
+        window.location.href = paymentData.init_point
+      } else {
+        // Transferencia: ir al dashboard (ya tiene los datos)
+        navigate('/dashboard')
+      }
 
     } catch (err) {
       setError(err.message)
-      setLoading(null)
-    }
-  }
-
-  // Botón transferencia manual
-  const handleManual = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading('manual')
-
-    try {
-      await createAccount()
-      setShowTransferModal(true)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(null)
+      setLoading(false)
     }
   }
 
   return (
-    <>
-      {showTransferModal && (
-        <TransferModal onClose={() => setShowTransferModal(false)} />
-      )}
+    <div className="auth-container">
+      <div className="auth-card">
 
-      <div className="auth-container">
-        <div className="auth-card">
-          <h2 className="auth-title">Crear cuenta</h2>
-          <p className="auth-subtitle">
-            La inscripción se realiza con una donación de <strong>$40.000 ARS</strong>
-          </p>
+        <button
+          onClick={onBack}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#94a3b8',
+            cursor: 'pointer',
+            fontSize: '0.9rem',
+            marginBottom: '1rem',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem'
+          }}
+        >
+          ← Volver
+        </button>
 
-          {error && <div className="auth-error">{error}</div>}
+        <h2 className="auth-title">Crear cuenta</h2>
+        <p className="auth-subtitle">
+          {paymentMethod === 'mp'
+            ? '💳 Pagarás con MercadoPago al finalizar'
+            : '🏦 Recordá enviar el comprobante por WhatsApp'
+          }
+        </p>
 
-          <form className="auth-form">
-            <div className="form-group">
-              <label>Nombre de usuario</label>
-              <input
-                type="text"
-                placeholder="Tu nombre"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
-            </div>
+        {error && <div className="auth-error">{error}</div>}
 
-            <div className="form-group">
-              <label>Email</label>
-              <input
-                type="email"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Nombre de usuario</label>
+            <input
+              type="text"
+              placeholder="Tu nombre"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
 
-            <div className="form-group">
-              <label>Contraseña</label>
-              <input
-                type="password"
-                placeholder="Mínimo 6 caracteres"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              placeholder="tu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
 
-            <div className="payment-buttons">
-              <button
-                type="button"
-                className="btn-mercadopago"
-                onClick={handleMercadoPago}
-                disabled={loading !== null}
-              >
-                {loading === 'mp' ? (
-                  <span>Procesando...</span>
-                ) : (
-                  <>
-                    <img
-                      src="https://imgmp.mlstatic.com/org-img/banners/ar/medios/120X60.jpg"
-                      alt="MercadoPago"
-                      className="mp-logo"
-                      onError={(e) => { e.target.style.display = 'none' }}
-                    />
-                    <span>Registrarse y Donar con MercadoPago</span>
-                  </>
-                )}
-              </button>
+          <div className="form-group">
+            <label>Contraseña</label>
+            <input
+              type="password"
+              placeholder="Mínimo 6 caracteres"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
 
-              <div className="payment-divider">
-                <span>o</span>
-              </div>
+          <button
+            type="submit"
+            className="btn-mercadopago"
+            disabled={loading}
+            style={{ marginTop: '0.5rem' }}
+          >
+            {loading
+              ? 'Procesando...'
+              : paymentMethod === 'mp'
+                ? '💳 Crear cuenta e ir a MercadoPago'
+                : '✅ Crear mi cuenta'
+            }
+          </button>
+        </form>
 
-              <button
-                type="button"
-                className="btn-transfer"
-                onClick={handleManual}
-                disabled={loading !== null}
-              >
-                {loading === 'manual' ? (
-                  <span>Creando cuenta...</span>
-                ) : (
-                  <>
-                    <span className="btn-icon">🏦</span>
-                    <span>Registrarse y Donar por Transferencia</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-
-          <p className="auth-link">
-            ¿Ya tenés cuenta? <Link to="/login">Iniciá sesión</Link>
-          </p>
-        </div>
+        <p className="auth-link">
+          ¿Ya tenés cuenta? <Link to="/login">Iniciá sesión</Link>
+        </p>
       </div>
-    </>
+    </div>
   )
+}
+
+// ─── Componente principal con máquina de estados ──────────────────────────
+export default function Register() {
+  // step: 'method' | 'transfer-info' | 'form'
+  const [step, setStep] = useState('method')
+  const [paymentMethod, setPaymentMethod] = useState(null)
+
+  const handleSelectMethod = (method) => {
+    setPaymentMethod(method)
+    if (method === 'transfer') {
+      setStep('transfer-info') // Mostrar datos ANTES del formulario
+    } else {
+      setStep('form') // MercadoPago va directo al formulario
+    }
+  }
+
+  if (step === 'method') {
+    return <StepPaymentMethod onSelect={handleSelectMethod} />
+  }
+
+  if (step === 'transfer-info') {
+    return (
+      <StepTransferInfo
+        onConfirm={() => setStep('form')}
+        onBack={() => setStep('method')}
+      />
+    )
+  }
+
+  if (step === 'form') {
+    return (
+      <StepRegisterForm
+        paymentMethod={paymentMethod}
+        onBack={() => paymentMethod === 'transfer' ? setStep('transfer-info') : setStep('method')}
+      />
+    )
+  }
 }
