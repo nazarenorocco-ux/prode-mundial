@@ -13,6 +13,9 @@
   --error: #ef4444;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
   --gold: #fbbf24;
+  /* Modal tiene fondo ligeramente más oscuro para profundidad */
+  --surface-modal: #1e2535;
+  --border-modal: #2a3447;
 }
 
 /* ===== RESET ===== */
@@ -30,12 +33,7 @@ body {
 }
 
 /* ===== LAYOUT ===== */
-.app-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 1.5rem 1rem;
-}
-
+/* Unificado — eliminar .app-container o .main-container según uso real */
 .main-container {
   max-width: 800px;
   margin: 0 auto;
@@ -137,6 +135,20 @@ body {
   border: 1px solid var(--border);
 }
 
+.btn-full {
+  width: 100%;
+  padding: 0.8rem;
+}
+
+/* ===== FLAGS ===== */
+.flag-img {
+  width: 24px;
+  height: auto;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
 /* ===== MATCH CARD ===== */
 .match-card {
   background: var(--surface);
@@ -154,6 +166,11 @@ body {
 .match-card-locked {
   opacity: 0.75;
   border-color: var(--border);
+}
+
+.match-card-finished {
+  border-left: 3px solid var(--gold);
+  opacity: 0.95;
 }
 
 .match-header {
@@ -216,6 +233,46 @@ body {
   color: var(--text-muted);
 }
 
+/* ===== FINISHED MATCH ===== */
+.finished-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.finished-scores {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.finished-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.finished-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.finished-score {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.finished-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--border);
+}
+
 /* ===== BADGES ===== */
 .badge {
   padding: 0.2rem 0.6rem;
@@ -224,27 +281,53 @@ body {
   font-weight: 600;
 }
 
+/* Usar siempre como: className="badge badge-locked" */
 .badge-locked {
   background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  padding: 0.2rem 0.6rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  color: var(--error);
 }
 
 .badge-saved {
   background: rgba(74, 222, 128, 0.15);
   color: var(--success);
-  padding: 0.2rem 0.6rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
 }
 
 .badge-finished {
   background: rgba(148, 163, 184, 0.15);
   color: var(--text-muted);
+}
+
+/* ===== POINTS BADGES ===== */
+.points-badge {
+  text-align: center;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.points-exact {
+  background: rgba(255, 215, 0, 0.15);
+  color: var(--gold);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.points-result {
+  background: rgba(100, 200, 100, 0.12);
+  color: #6dbf6d;
+  border: 1px solid rgba(100, 200, 100, 0.25);
+}
+
+.points-none {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.points-pending {
+  background: rgba(150, 150, 255, 0.1);
+  color: #9999ff;
+  border: 1px solid rgba(150, 150, 255, 0.2);
 }
 
 /* ===== FORMS ===== */
@@ -324,44 +407,20 @@ body {
   flex-direction: column;
 }
 
-.auth-button {
-  width: 100%;
-  padding: 0.75rem;
-  background: var(--accent);
-  color: var(--bg);
-  border: none;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
-  margin-top: 0.5rem;
-}
-
-.auth-button:hover:not(:disabled) {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-.auth-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.auth-link {
+.auth-footer {
   text-align: center;
   margin-top: 1.25rem;
   font-size: 0.875rem;
   color: var(--text-muted);
 }
 
-.auth-link a {
+.auth-footer a {
   color: var(--accent);
   text-decoration: none;
   font-weight: 600;
 }
 
-.auth-link a:hover {
+.auth-footer a:hover {
   text-decoration: underline;
 }
 
@@ -500,15 +559,7 @@ body {
   color: var(--text-muted);
 }
 
-/* ===== PAGE TITLE ===== */
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-h);
-  margin-bottom: 1.5rem;
-}
-
-/* ===== GROUP TITLE (fallback) ===== */
+/* ===== GROUP TITLE ===== */
 .group-title {
   font-size: 1rem;
   font-weight: 700;
@@ -573,78 +624,7 @@ body {
   border-color: var(--accent);
 }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 600px) {
-  .match-teams {
-    font-size: 0.85rem;
-  }
-
-  .score-input input {
-    width: 48px;
-  }
-
-  .navbar {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    padding: 0.8rem 1rem;
-  }
-
-  .navbar-brand {
-    font-size: 1rem;
-  }
-
-  .navbar-actions {
-    width: 100%;
-    justify-content: flex-start;
-    gap: 0.4rem;
-  }
-
-  .navbar-link {
-    font-size: 0.8rem;
-    padding: 0.3rem 0.5rem;
-  }
-
-  .navbar-user {
-    display: none;
-  }
-
-  .page-title {
-    font-size: 1.2rem;
-  }
-
-  .group-tabs {
-    gap: 0.4rem;
-  }
-
-  .group-tab {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
-  }
-
-  .admin-match-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .modal-card {
-    padding: 1.5rem;
-  }
-
-  .transfer-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.4rem;
-  }
-
-  .transfer-value-group {
-    width: 100%;
-    justify-content: space-between;
-  }
-}
-
-/* ════════════════════════════════════════════════════════════════
-   MODAL
-════════════════════════════════════════════════════════════════ */
+/* ===== MODAL ===== */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -658,8 +638,8 @@ body {
 }
 
 .modal-card {
-  background: #1e2535;
-  border: 1px solid #2a3447;
+  background: var(--surface-modal);
+  border: 1px solid var(--border-modal);
   border-radius: 16px;
   padding: 2rem;
   width: 100%;
@@ -677,7 +657,7 @@ body {
   right: 1rem;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 1rem;
   width: 32px;
   height: 32px;
@@ -692,12 +672,9 @@ body {
 
 .modal-close:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #f1f5f9;
+  color: var(--text-h);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   MODAL HEADER
-════════════════════════════════════════════════════════════════ */
 .modal-header {
   text-align: center;
   margin-bottom: 1.5rem;
@@ -713,24 +690,22 @@ body {
 .modal-header h3 {
   font-size: 1.3rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-h);
   margin: 0 0 0.5rem;
 }
 
 .modal-header p {
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 0.9rem;
   margin: 0;
   line-height: 1.5;
 }
 
 .modal-header strong {
-  color: #63b3ed;
+  color: var(--accent);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   TRANSFER INFO
-════════════════════════════════════════════════════════════════ */
+/* ===== TRANSFER INFO ===== */
 .transfer-info {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -751,7 +726,7 @@ body {
 }
 
 .transfer-label {
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -761,7 +736,7 @@ body {
 }
 
 .transfer-value {
-  color: #f1f5f9;
+  color: var(--text-h);
   font-size: 0.95rem;
   font-weight: 600;
 }
@@ -770,7 +745,7 @@ body {
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.78rem;
   word-break: break-all;
-  color: #cbd5e1;
+  color: var(--text);
 }
 
 .transfer-value-group {
@@ -782,13 +757,11 @@ body {
   flex-wrap: wrap;
 }
 
-/* ════════════════════════════════════════════════════════════════
-   COPY BUTTON
-════════════════════════════════════════════════════════════════ */
+/* ===== COPY BUTTON ===== */
 .copy-btn {
-  background: rgba(99, 179, 237, 0.12);
-  border: 1px solid rgba(99, 179, 237, 0.25);
-  color: #63b3ed;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: var(--accent);
   border-radius: 6px;
   padding: 0.25rem 0.6rem;
   font-size: 0.75rem;
@@ -800,26 +773,24 @@ body {
 }
 
 .copy-btn:hover {
-  background: rgba(99, 179, 237, 0.22);
-  border-color: rgba(99, 179, 237, 0.4);
+  background: rgba(56, 189, 248, 0.22);
+  border-color: rgba(56, 189, 248, 0.4);
 }
 
 .copy-btn.copied {
   background: rgba(72, 187, 120, 0.12);
   border-color: rgba(72, 187, 120, 0.3);
-  color: #48bb78;
+  color: var(--success);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   WHATSAPP CONTACT
-════════════════════════════════════════════════════════════════ */
+/* ===== WHATSAPP ===== */
 .transfer-contact {
   text-align: center;
   margin-bottom: 1.25rem;
 }
 
 .transfer-contact p {
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 0.85rem;
   margin: 0 0 0.75rem;
 }
@@ -845,9 +816,7 @@ body {
   box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   TRANSFER NOTE
-════════════════════════════════════════════════════════════════ */
+/* ===== TRANSFER NOTE ===== */
 .transfer-note {
   display: flex;
   align-items: flex-start;
@@ -866,7 +835,7 @@ body {
 }
 
 .transfer-note p {
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 0.83rem;
   margin: 0;
   line-height: 1.5;
@@ -876,9 +845,7 @@ body {
   color: #ed8936;
 }
 
-/* ════════════════════════════════════════════════════════════════
-   MODAL DONE BUTTON
-════════════════════════════════════════════════════════════════ */
+/* ===== MODAL DONE BUTTON ===== */
 .modal-done-btn {
   width: 100%;
   background: linear-gradient(135deg, #3b82f6, #2563eb);
@@ -899,9 +866,7 @@ body {
   box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   PAYMENT BUTTONS
-════════════════════════════════════════════════════════════════ */
+/* ===== PAYMENT BUTTONS ===== */
 .payment-buttons {
   display: flex;
   flex-direction: column;
@@ -948,7 +913,7 @@ body {
   justify-content: center;
   gap: 0.75rem;
   background: rgba(255, 255, 255, 0.05);
-  color: #f1f5f9;
+  color: var(--text-h);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 10px;
   padding: 0.85rem 1rem;
@@ -990,91 +955,7 @@ body {
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   FINISHED MATCH CARD
-════════════════════════════════════════════════════════════════ */
-.match-card-finished {
-  border-left: 3px solid var(--gold);
-  opacity: 0.95;
-}
-
-.finished-result {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.finished-scores {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.finished-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  flex: 1;
-}
-
-.finished-label {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.finished-score {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.finished-divider {
-  width: 1px;
-  height: 40px;
-  background: var(--border);
-}
-
-/* ════════════════════════════════════════════════════════════════
-   POINTS BADGES
-════════════════════════════════════════════════════════════════ */
-.points-badge {
-  text-align: center;
-  padding: 0.4rem 0.75rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.points-exact {
-  background: rgba(255, 215, 0, 0.15);
-  color: var(--gold);
-  border: 1px solid rgba(255, 215, 0, 0.3);
-}
-
-.points-result {
-  background: rgba(100, 200, 100, 0.12);
-  color: #6dbf6d;
-  border: 1px solid rgba(100, 200, 100, 0.25);
-}
-
-.points-none {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-}
-
-.points-pending {
-  background: rgba(150, 150, 255, 0.1);
-  color: #9999ff;
-  border: 1px solid rgba(150, 150, 255, 0.2);
-}
-
-/* ════════════════════════════════════════════════════════════════
-   POINTS SUMMARY BANNER — Dashboard
-════════════════════════════════════════════════════════════════ */
+/* ===== POINTS SUMMARY BANNER ===== */
 .points-summary-banner {
   background: linear-gradient(135deg, #1e293b 0%, #0f2744 100%);
   border: 1px solid var(--gold);
@@ -1127,7 +1008,7 @@ body {
   white-space: nowrap;
 }
 
-.stat-exact  {
+.stat-exact {
   background: rgba(16, 185, 129, 0.15);
   color: #34d399;
   border: 1px solid rgba(52, 211, 153, 0.3);
@@ -1151,10 +1032,74 @@ body {
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   RESPONSIVE — Banner mobile
-════════════════════════════════════════════════════════════════ */
-@media (max-width: 480px) {
+/* ===== RESPONSIVE ===== */
+@media (max-width: 600px) {
+  .match-teams {
+    font-size: 0.85rem;
+  }
+
+  .score-input input {
+    width: 48px;
+  }
+
+  .navbar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.8rem 1rem;
+  }
+
+  .navbar-brand {
+    font-size: 1rem;
+  }
+
+  .navbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.4rem;
+  }
+
+  .navbar-link {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .navbar-user {
+    display: none;
+  }
+
+  .page-header h1 {
+    font-size: 1.2rem;
+  }
+
+  .group-tabs {
+    gap: 0.4rem;
+  }
+
+  .group-tab {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .admin-match-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .modal-card {
+    padding: 1.5rem;
+  }
+
+  .transfer-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .transfer-value-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .points-summary-banner {
     flex-direction: column;
     align-items: flex-start;
@@ -1175,15 +1120,4 @@ body {
   .points-summary-total {
     font-size: 1.8rem;
   }
-}
-.flag-img {
-  width: 24px;
-  height: auto;
-  margin-right: 6px;
-  border-radius: 2px;
-  vertical-align: middle;
-}
-.btn-full {
-  width: 100%;
-  padding: 0.8rem;
 }
