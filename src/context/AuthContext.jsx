@@ -14,22 +14,41 @@ export function AuthProvider({ children }) {
     setIsAdmin(false)
   }
 
+  const fetchProfile = async (userId) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', userId)
+      .single()
+    setIsAdmin(data?.is_admin || false)
+  }
+
   useEffect(() => {
+    let initialized = false
+
+    // Primero chequeo inicial
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user)
+        await fetchProfile(session.user.id)
+      }
+      initialized = true
+      setLoading(false)
+    })
+
+    // Luego escucho cambios
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // Solo actuar si ya inicializamos para evitar conflictos
+        if (!initialized) return
+
         if (session?.user) {
           setUser(session.user)
-          const { data } = await supabase
-            .from('profiles')
-            .select('is_admin')
-            .eq('id', session.user.id)
-            .single()
-          setIsAdmin(data?.is_admin || false)
+          await fetchProfile(session.user.id)
         } else {
           setUser(null)
           setIsAdmin(false)
         }
-        setLoading(false)
       }
     )
 
