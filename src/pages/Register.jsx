@@ -4,11 +4,11 @@ import { useNavigate, Link } from 'react-router-dom'
 
 // ─── Datos de contacto para transferencia manual ───────────────────────────
 const TRANSFER_INFO = {
-  alias: 'PRODE.MUNDIAL.2026',
-  cbu: '0000003100012345678901',
-  banco: 'Banco Ejemplo',
-  titular: 'Juan Pérez',
-  whatsapp: '+54 9 11 1234-5678',
+  alias: 'borro.214',
+  cbu: '0000003100012341234567',
+  banco: 'Personal Pay',
+  titular: 'Lambertucci Roberto',
+  whatsapp: '+54 9 3401 648383',
   monto: '$40.000 ARS'
 }
 
