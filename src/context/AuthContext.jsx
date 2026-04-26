@@ -30,28 +30,22 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    // 1. Chequear sesión existente al montar
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('Initial session:', session?.user?.email)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        await fetchProfile(session.user.id)
-      }
-      setLoading(false)
-    })
-
-    // 2. Escuchar cambios posteriores
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth event:', event)
-        if (event === 'SIGNED_IN') {
-          setUser(session.user)
-          await fetchProfile(session.user.id)
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null)
-          setIsAdmin(false)
+        try {
+          if (session?.user) {
+            setUser(session.user)
+            await fetchProfile(session.user.id)
+          } else {
+            setUser(null)
+            setIsAdmin(false)
+          }
+        } catch (err) {
+          console.error('Error en auth change:', err)
+        } finally {
+          setLoading(false)
         }
-        // No tocar loading acá, ya lo manejó getSession
       }
     )
 
