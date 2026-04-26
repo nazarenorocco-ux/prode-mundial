@@ -1,3 +1,4 @@
+// AuthContext.jsx
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -14,7 +15,7 @@ export function AuthProvider({ children }) {
       .select('is_admin')
       .eq('id', userId)
       .single()
-    setIsAdmin(data?.is_admin || false)
+    return data?.is_admin || false
   }
 
   const signOut = async () => {
@@ -24,21 +25,36 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
       setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
-      setLoading(false)
-    })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
       if (session?.user) {
-        fetchProfile(session.user.id)
-      } else {
-        setIsAdmin(false)
+        const admin = await fetchProfile(session.user.id)
+        setIsAdmin(admin)
       }
+
       setLoading(false)
-    })
+    }
+
+    initAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'INITIAL_SESSION') return
+
+        setUser(session?.user ?? null)
+
+        if (session?.user) {
+          const admin = await fetchProfile(session.user.id)
+          setIsAdmin(admin)
+        } else {
+          setIsAdmin(false)
+        }
+
+        setLoading(false)
+      }
+    )
 
     return () => subscription.unsubscribe()
   }, [])
