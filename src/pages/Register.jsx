@@ -110,14 +110,22 @@ export default function Register() {
   const [loading, setLoading] = useState(null) // 'mp' | 'manual' | null
   const [showTransferModal, setShowTransferModal] = useState(false)
 
-  // Paso 1: solo crear la cuenta (sin pago aún)
+  // Crear cuenta en Supabase
   const createAccount = async () => {
+    if (!username.trim() || !email.trim() || !password.trim()) {
+      throw new Error('Completá todos los campos')
+    }
+    if (password.length < 6) {
+      throw new Error('La contraseña debe tener mínimo 6 caracteres')
+    }
+
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { username } }
     })
     if (signUpError) throw signUpError
+    if (!data.user) throw new Error('No se pudo crear el usuario')
 
     const userId = data.user.id
 
@@ -153,7 +161,6 @@ export default function Register() {
 
     } catch (err) {
       setError(err.message)
-    } finally {
       setLoading(null)
     }
   }
@@ -223,7 +230,6 @@ export default function Register() {
               />
             </div>
 
-            {/* ── Botones de pago ── */}
             <div className="payment-buttons">
               <button
                 type="button"
@@ -261,7 +267,7 @@ export default function Register() {
                 ) : (
                   <>
                     <span className="btn-icon">🏦</span>
-                    <span>Registrase y Donar por Transferencia / Otro medio</span>
+                    <span>Registrarse y Donar por Transferencia</span>
                   </>
                 )}
               </button>
