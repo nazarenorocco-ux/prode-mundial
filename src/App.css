@@ -12,6 +12,7 @@
   --success: #4ade80;
   --error: #ef4444;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --gold: #fbbf24; 
 }
 
 /* ===== RESET ===== */
@@ -1304,4 +1305,81 @@ body {
   flex: 1;
   height: 1px;
   background: rgba(255, 255, 255, 0.08);
+}
+/* ── Partido finalizado ── */
+.match-card-finished {
+  border-left: 3px solid var(--gold);
+  opacity: 0.95;
+}
+
+.finished-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.finished-scores {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.finished-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.finished-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.finished-score {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.finished-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--border);
+}
+
+/* ── Badge de puntos ── */
+.points-badge {
+  text-align: center;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.points-exact {
+  background: rgba(255, 215, 0, 0.15);
+  color: var(--gold);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.points-result {
+  background: rgba(100, 200, 100, 0.12);
+  color: #6dbf6d;
+  border: 1px solid rgba(100, 200, 100, 0.25);
+}
+
+.points-none {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.points-pending {
+  background: rgba(150, 150, 255, 0.1);
+  color: #9999ff;
+  border: 1px solid rgba(150, 150, 255, 0.2);
 }
