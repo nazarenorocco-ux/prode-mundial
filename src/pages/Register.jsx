@@ -4,9 +4,9 @@ import { useNavigate, Link } from 'react-router-dom'
 
 const TRANSFER_INFO = {
   alias: 'borro.214',
-  cbu: '0000003100012341234567',
+  cbu: '0000076500000017488488',
   banco: 'Personal Pay',
-  titular: 'Lambertucci Roberto',
+  titular: 'Roberto Atilio Lambertucci',
   whatsapp: '+54 9 3401 648383',
   monto: '$40.000 ARS'
 }

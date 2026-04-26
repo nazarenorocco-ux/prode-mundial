@@ -116,7 +116,7 @@ export default function Dashboard() {
           </div>
           <div className="points-summary-stats">
             <span className="stat-chip stat-exact">⚽ {exactCount} exactos</span>
-            <span className="stat-chip stat-result">✓ {resultCount} resultado</span>
+            <span className="stat-chip stat-result">✓ {resultCount} correctos</span>
             <span className="stat-chip stat-miss">✗ {missCount} fallados</span>
             <span className="stat-chip stat-played">📋 {playedCount} jugados</span>
           </div>
