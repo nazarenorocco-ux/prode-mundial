@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Navbar from './components/Navbar'
 import Landing from './pages/Landing'
@@ -31,6 +32,20 @@ function PublicRoute({ children }) {
   return user ? <Navigate to="/dashboard" /> : children
 }
 
+function RegisterRoute({ children }) {
+  const { user, loading } = useAuth()
+  const [hadUserOnMount, setHadUserOnMount] = useState(null)
+
+  useEffect(() => {
+    if (!loading && hadUserOnMount === null) {
+      setHadUserOnMount(!!user)
+    }
+  }, [loading, user, hadUserOnMount])
+
+  if (loading || hadUserOnMount === null) return <p>Cargando...</p>
+  return hadUserOnMount ? <Navigate to="/dashboard" /> : children
+}
+
 function AppContent() {
   const { user } = useAuth()
 
@@ -38,24 +53,19 @@ function AppContent() {
     <>
       {user && <Navbar />}
       <Routes>
-        {/* Pública - Landing */}
         <Route path="/" element={<Landing />} />
 
-        {/* Auth */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+        <Route path="/register" element={<RegisterRoute><Register /></RegisterRoute>} />
 
-        {/* Privadas */}
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
         <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
 
-        {/* Pagos */}
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failure" element={<PaymentFailure />} />
         <Route path="/payment/pending" element={<PaymentPending />} />
 
-        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </>
