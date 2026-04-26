@@ -12,7 +12,7 @@
   --success: #4ade80;
   --error: #ef4444;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  --gold: #fbbf24; 
+  --gold: #fbbf24;
 }
 
 /* ===== RESET ===== */
@@ -365,323 +365,6 @@ body {
   text-decoration: underline;
 }
 
-/* ===== PAYMENT BUTTONS ===== */
-.payment-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  margin-top: 0.5rem;
-}
-
-.btn-mercadopago {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 0.8rem 1.2rem;
-  background: #009ee3;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-  width: 100%;
-}
-
-.btn-mercadopago:hover:not(:disabled) {
-  background: #007fc0;
-  transform: translateY(-1px);
-}
-
-.btn-mercadopago:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.mp-logo {
-  height: 22px;
-  width: auto;
-  border-radius: 4px;
-}
-
-.payment-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 1rem 0;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-}
-
-.payment-divider::before,
-.payment-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-.btn-transfer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 0.8rem 1.2rem;
-  background: transparent;
-  color: var(--text-muted);
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: border-color 0.2s, color 0.2s, transform 0.1s;
-  width: 100%;
-}
-
-.btn-transfer:hover:not(:disabled) {
-  border-color: var(--accent-border);
-  color: var(--accent);
-  transform: translateY(-1px);
-}
-
-.btn-transfer:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-icon {
-  font-size: 1.1rem;
-}
-
-/* ===== MODAL ===== */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-  backdrop-filter: blur(4px);
-}
-
-.modal-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 2rem;
-  max-width: 440px;
-  width: 100%;
-  position: relative;
-  box-shadow: var(--shadow);
-}
-
-.modal-close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  line-height: 1;
-}
-
-.modal-close:hover {
-  background: var(--border);
-  color: var(--text);
-}
-
-.modal-header {
-  text-align: center;
-  margin-bottom: 1.5rem;
-}
-
-.modal-icon {
-  font-size: 2.5rem;
-  display: block;
-  margin-bottom: 0.75rem;
-}
-
-.modal-header h3 {
-  color: var(--accent);
-  font-size: 1.3rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
-.modal-header p {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.modal-header p strong {
-  color: var(--text);
-}
-
-/* ===== TRANSFER INFO ===== */
-.transfer-info {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1rem;
-  margin-bottom: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.transfer-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.transfer-label {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
-  min-width: 55px;
-  flex-shrink: 0;
-}
-
-.transfer-value-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.transfer-value {
-  color: var(--text);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.transfer-value.cbu {
-  font-family: 'Courier New', monospace;
-  font-size: 0.8rem;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-}
-
-.copy-btn {
-  padding: 3px 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.copy-btn:hover {
-  background: var(--border);
-  color: var(--text);
-}
-
-.copy-btn.copied {
-  background: rgba(74, 222, 128, 0.1);
-  border-color: rgba(74, 222, 128, 0.3);
-  color: var(--success);
-}
-
-/* ===== WHATSAPP BUTTON ===== */
-.transfer-contact {
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-.transfer-contact p {
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  margin-bottom: 0.75rem;
-}
-
-.whatsapp-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0.7rem 1.5rem;
-  background: #25d366;
-  color: white;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: background 0.2s, transform 0.1s;
-}
-
-.whatsapp-btn:hover {
-  background: #1da851;
-  transform: translateY(-1px);
-}
-
-/* ===== TRANSFER NOTE ===== */
-.transfer-note {
-  display: flex;
-  gap: 0.75rem;
-  background: rgba(251, 191, 36, 0.08);
-  border: 1px solid rgba(251, 191, 36, 0.2);
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1.25rem;
-  align-items: flex-start;
-}
-
-.transfer-note span {
-  font-size: 1rem;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.transfer-note p {
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.transfer-note p strong {
-  color: var(--text);
-}
-
-/* ===== MODAL DONE BUTTON ===== */
-.modal-done-btn {
-  width: 100%;
-  padding: 0.75rem;
-  background: var(--accent);
-  color: var(--bg);
-  border: none;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
-}
-
-.modal-done-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
 /* ===== LEADERBOARD ===== */
 .leaderboard {
   background: var(--surface);
@@ -943,7 +626,6 @@ body {
     align-items: flex-start;
   }
 
-  /* Modal responsive */
   .modal-card {
     padding: 1.5rem;
   }
@@ -959,8 +641,9 @@ body {
     justify-content: space-between;
   }
 }
+
 /* ════════════════════════════════════════════════════════════════
-   MODAL BASE
+   MODAL
 ════════════════════════════════════════════════════════════════ */
 .modal-overlay {
   position: fixed;
@@ -1018,7 +701,7 @@ body {
 .modal-header {
   text-align: center;
   margin-bottom: 1.5rem;
-  padding-right: 1.5rem; /* espacio para el botón close */
+  padding-right: 1.5rem;
 }
 
 .modal-icon {
@@ -1046,7 +729,7 @@ body {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   TRANSFER INFO BLOCK
+   TRANSFER INFO
 ════════════════════════════════════════════════════════════════ */
 .transfer-info {
   background: rgba(255, 255, 255, 0.04);
@@ -1163,7 +846,7 @@ body {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   TRANSFER NOTE (advertencia)
+   TRANSFER NOTE
 ════════════════════════════════════════════════════════════════ */
 .transfer-note {
   display: flex;
@@ -1194,7 +877,7 @@ body {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   DONE BUTTON
+   MODAL DONE BUTTON
 ════════════════════════════════════════════════════════════════ */
 .modal-done-btn {
   width: 100%;
@@ -1217,7 +900,7 @@ body {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   PAYMENT BUTTONS (Register page)
+   PAYMENT BUTTONS
 ════════════════════════════════════════════════════════════════ */
 .payment-buttons {
   display: flex;
@@ -1306,7 +989,10 @@ body {
   height: 1px;
   background: rgba(255, 255, 255, 0.08);
 }
-/* ── Partido finalizado ── */
+
+/* ════════════════════════════════════════════════════════════════
+   FINISHED MATCH CARD
+════════════════════════════════════════════════════════════════ */
 .match-card-finished {
   border-left: 3px solid var(--gold);
   opacity: 0.95;
@@ -1351,7 +1037,9 @@ body {
   background: var(--border);
 }
 
-/* ── Badge de puntos ── */
+/* ════════════════════════════════════════════════════════════════
+   POINTS BADGES
+════════════════════════════════════════════════════════════════ */
 .points-badge {
   text-align: center;
   padding: 0.4rem 0.75rem;
@@ -1382,4 +1070,109 @@ body {
   background: rgba(150, 150, 255, 0.1);
   color: #9999ff;
   border: 1px solid rgba(150, 150, 255, 0.2);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   POINTS SUMMARY BANNER — Dashboard
+════════════════════════════════════════════════════════════════ */
+.points-summary-banner {
+  background: linear-gradient(135deg, #1e293b 0%, #0f2744 100%);
+  border: 1px solid var(--gold);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.12);
+}
+
+.points-summary-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 90px;
+  border-right: 1px solid rgba(251, 191, 36, 0.25);
+  padding-right: 1.5rem;
+}
+
+.points-summary-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.points-summary-total {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--gold);
+  line-height: 1.1;
+}
+
+.points-summary-stats {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.stat-chip {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.stat-exact  {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.stat-result {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(147, 197, 253, 0.3);
+}
+
+.stat-miss {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(252, 165, 165, 0.3);
+}
+
+.stat-played {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--text-muted);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RESPONSIVE — Banner mobile
+════════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .points-summary-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .points-summary-main {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.75rem;
+    border-right: none;
+    border-bottom: 1px solid rgba(251, 191, 36, 0.25);
+    padding-right: 0;
+    padding-bottom: 0.75rem;
+    width: 100%;
+  }
+
+  .points-summary-total {
+    font-size: 1.8rem;
+  }
 }
