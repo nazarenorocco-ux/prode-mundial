@@ -241,7 +241,7 @@ export default function Register() {
                       className="mp-logo"
                       onError={(e) => { e.target.style.display = 'none' }}
                     />
-                    <span>Pagar con MercadoPago</span>
+                    <span>Registrarse y Donar con MercadoPago</span>
                   </>
                 )}
               </button>
@@ -261,7 +261,7 @@ export default function Register() {
                 ) : (
                   <>
                     <span className="btn-icon">🏦</span>
-                    <span>Transferencia / Otro medio</span>
+                    <span>Registrase y Donar por Transferencia / Otro medio</span>
                   </>
                 )}
               </button>
