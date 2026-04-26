@@ -49,6 +49,19 @@ export default function Dashboard() {
     }
   }
 
+  // ── Cálculo de puntos acumulados ──────────────────────────────────────
+  const finishedMatches = matches.filter(m => m.status === 'finished')
+  const totalPoints = finishedMatches.reduce((sum, match) => {
+    const pred = predictions[match.id]
+    return sum + (pred?.points ?? 0)
+  }, 0)
+
+  const exactCount  = finishedMatches.filter(m => predictions[m.id]?.points === 3).length
+  const resultCount = finishedMatches.filter(m => predictions[m.id]?.points === 1).length
+  const missCount   = finishedMatches.filter(m => predictions[m.id]?.points === 0 && predictions[m.id] != null).length
+  const playedCount = finishedMatches.length
+  // ─────────────────────────────────────────────────────────────────────
+
   const groupedMatches = matches.reduce((acc, match) => {
     const group = match.group_name || 'Sin grupo'
     if (!acc[group]) acc[group] = []
@@ -92,6 +105,23 @@ export default function Dashboard() {
         <h1>🏆 Mis Predicciones</h1>
         <p>Ingresá el resultado que creés que va a salir en cada partido</p>
       </div>
+
+      {/* ── Banner de puntos ── */}
+     {finishedMatches.length > 0 && (
+
+        <div className="points-summary-banner">
+          <div className="points-summary-main">
+            <span className="points-summary-label">Mis puntos</span>
+            <span className="points-summary-total">{totalPoints} pts</span>
+          </div>
+          <div className="points-summary-stats">
+            <span className="stat-chip stat-exact">⚽ {exactCount} exactos</span>
+            <span className="stat-chip stat-result">✓ {resultCount} resultado</span>
+            <span className="stat-chip stat-miss">✗ {missCount} fallados</span>
+            <span className="stat-chip stat-played">📋 {playedCount} jugados</span>
+          </div>
+        </div>
+      )}
 
       <div className="group-tabs">
         {groups.map(group => (
