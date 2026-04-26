@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Navbar from './components/Navbar'
 import Landing from './pages/Landing'
@@ -12,38 +11,41 @@ import PaymentSuccess from './pages/PaymentSuccess'
 import PaymentFailure from './pages/PaymentFailure'
 import PaymentPending from './pages/PaymentPending'
 
+function LoadingScreen() {
+  return (
+    <div className="main-container">
+      <p style={{ color: 'var(--text-muted)' }}>Cargando...</p>
+    </div>
+  )
+}
+
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
-  if (loading) return <p>Cargando...</p>
+  if (loading) return <LoadingScreen />
   return user ? children : <Navigate to="/login" />
 }
 
 function AdminRoute({ children }) {
   const { user, loading, isAdmin } = useAuth()
-  if (loading) return <p>Cargando...</p>
+  if (loading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" />
   if (!isAdmin) return <Navigate to="/" />
   return children
 }
 
+// Redirige a /dashboard si ya hay sesión activa
 function PublicRoute({ children }) {
   const { user, loading } = useAuth()
-  if (loading) return <p>Cargando...</p>
+  if (loading) return <LoadingScreen />
   return user ? <Navigate to="/dashboard" /> : children
 }
 
+// Igual que PublicRoute: si ya hay sesión al entrar, redirigir
+// Register.jsx maneja su propio flujo una vez que el usuario se crea
 function RegisterRoute({ children }) {
   const { user, loading } = useAuth()
-  const [hadUserOnMount, setHadUserOnMount] = useState(null)
-
-  useEffect(() => {
-    if (!loading && hadUserOnMount === null) {
-      setHadUserOnMount(!!user)
-    }
-  }, [loading, user, hadUserOnMount])
-
-  if (loading || hadUserOnMount === null) return <p>Cargando...</p>
-  return hadUserOnMount ? <Navigate to="/dashboard" /> : children
+  if (loading) return <LoadingScreen />
+  return user ? <Navigate to="/dashboard" /> : children
 }
 
 function AppContent() {
@@ -51,6 +53,7 @@ function AppContent() {
 
   return (
     <>
+      {/* Navbar solo visible para usuarios autenticados */}
       {user && <Navbar />}
       <Routes>
         <Route path="/" element={<Landing />} />
@@ -62,6 +65,7 @@ function AppContent() {
         <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
         <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
 
+        {/* Rutas públicas: callbacks de MercadoPago, no requieren sesión */}
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failure" element={<PaymentFailure />} />
         <Route path="/payment/pending" element={<PaymentPending />} />

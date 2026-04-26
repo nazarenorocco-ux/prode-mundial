@@ -1183,3 +1183,7 @@ body {
   border-radius: 2px;
   vertical-align: middle;
 }
+.btn-full {
+  width: 100%;
+  padding: 0.8rem;
+}

@@ -9,28 +9,16 @@ export default function PredictionForm({ match, existingPrediction, onSaved }) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  const isLocked = () => {
-    const matchTime = new Date(match.match_date)
-    const now = new Date()
-    const diffMinutes = (matchTime - now) / (1000 * 60)
-    return diffMinutes <= 30 || match.status === 'finished'
-  }
-
-  const locked = isLocked()
   const finished = match.status === 'finished'
 
-  const getLockMessage = () => {
-    if (finished) return null // lo manejamos aparte abajo
-    const matchTime = new Date(match.match_date)
-    const now = new Date()
-    const diffMinutes = Math.round((matchTime - now) / (1000 * 60))
-    if (diffMinutes <= 0) return '🔒 Partido en curso'
-    if (diffMinutes <= 30) return `🔒 Cierra en ${diffMinutes} min`
-    return null
-  }
+  // Minutos hasta el partido — negativo si ya empezó
+  const minutesUntilMatch = (new Date(match.match_date) - new Date()) / (1000 * 60)
+  const locked = minutesUntilMatch <= 30 || finished
 
   const formatDate = (dateStr) => {
+    if (!dateStr) return 'Fecha por confirmar'
     const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return 'Fecha por confirmar'
     return date.toLocaleDateString('es-AR', {
       day: '2-digit',
       month: '2-digit',
@@ -39,9 +27,29 @@ export default function PredictionForm({ match, existingPrediction, onSaved }) {
     })
   }
 
+  const getLockMessage = () => {
+    if (finished) return null // se maneja en la sección de resultado
+    if (minutesUntilMatch <= 0) return '🔒 Partido en curso'
+    if (minutesUntilMatch <= 30) return `🔒 Cierra en ${Math.round(minutesUntilMatch)} min`
+    return null
+  }
+
+  const getPointsDisplay = () => {
+    if (!finished || !existingPrediction) return null
+
+    const pts = existingPrediction.points
+
+    // pts null/undefined = aún no calculados
+    if (pts == null) return { label: '⏳ Puntos pendientes', className: 'points-pending' }
+    if (pts === 3)   return { label: '⚽ ¡Exacto! +3 pts', className: 'points-exact' }
+    if (pts === 1)   return { label: '✓ Resultado correcto +1 pt', className: 'points-result' }
+    return               { label: '✗ Sin puntos', className: 'points-none' }
+  }
+
   const handleSave = async () => {
     if (locked) return
     if (homeScore === '' || awayScore === '') return
+
     setSaving(true)
 
     const payload = {
@@ -55,30 +63,16 @@ export default function PredictionForm({ match, existingPrediction, onSaved }) {
       ? await supabase.from('predictions').update(payload).eq('id', existingPrediction.id)
       : await supabase.from('predictions').insert(payload)
 
+    setSaving(false)
+
     if (error) {
       alert(error.message)
-      setSaving(false)
       return
     }
 
-    setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
     onSaved()
-  }
-
-  const getPointsDisplay = () => {
-    if (!finished) return null
-    if (!existingPrediction) return null
-
-    const pts = existingPrediction.points
-
-    if (pts === 3) return { label: '⚽ ¡Exacto! +3 pts', className: 'points-exact' }
-    if (pts === 1) return { label: '✓ Resultado correcto +1 pt', className: 'points-result' }
-    if (pts === 0) return { label: '✗ Sin puntos', className: 'points-none' }
-
-    // puntos null = aún no calculados
-    return { label: '⏳ Puntos pendientes', className: 'points-pending' }
   }
 
   const lockMessage = getLockMessage()
@@ -91,20 +85,24 @@ export default function PredictionForm({ match, existingPrediction, onSaved }) {
       <div className="match-header">
         <div className="match-teams">
           <span>
-            <img
-              src={getFlagUrl(match.home_flag)}
-              alt={match.home_team}
-              style={{ width: '24px', marginRight: '6px', verticalAlign: 'middle' }}
-            />
+            {match.home_flag && (
+              <img
+                src={getFlagUrl(match.home_flag)}
+                alt={match.home_team}
+                className="flag-img"
+              />
+            )}
             {match.home_team}
           </span>
           <span className="match-vs">vs</span>
           <span>
-            <img
-              src={getFlagUrl(match.away_flag)}
-              alt={match.away_team}
-              style={{ width: '24px', marginRight: '6px', verticalAlign: 'middle' }}
-            />
+            {match.away_flag && (
+              <img
+                src={getFlagUrl(match.away_flag)}
+                alt={match.away_team}
+                className="flag-img"
+              />
+            )}
             {match.away_team}
           </span>
         </div>
@@ -120,10 +118,9 @@ export default function PredictionForm({ match, existingPrediction, onSaved }) {
         📅 {formatDate(match.match_date)}
       </div>
 
-      {/* Partido finalizado: mostrar resultado + pronóstico + puntos */}
+      {/* Partido finalizado: resultado + pronóstico + puntos */}
       {finished ? (
         <div className="finished-result">
-
           <div className="finished-scores">
             <div className="finished-col">
               <span className="finished-label">Resultado final</span>
@@ -155,10 +152,9 @@ export default function PredictionForm({ match, existingPrediction, onSaved }) {
               Sin pronóstico cargado
             </div>
           )}
-
         </div>
       ) : (
-        /* Partido no finalizado: inputs normales */
+        /* Partido no finalizado: inputs de predicción */
         <div className="prediction-row">
           <div className="score-input">
             <input

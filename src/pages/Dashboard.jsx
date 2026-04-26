@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import PredictionForm from '../components/PredictionForm'
@@ -11,43 +11,45 @@ export default function Dashboard() {
   const [activeGroup, setActiveGroup] = useState(null)
   const [userStatus, setUserStatus] = useState(null)
 
+  const fetchData = useCallback(async () => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', user.id)
+        .single()
+
+      setUserStatus(profile?.status || 'pendiente')
+
+      const { data: matchesData } = await supabase
+        .from('matches')
+        .select('*')
+        .order('match_date', { ascending: true })
+
+      const { data: predictionsData } = await supabase
+        .from('predictions')
+        .select('*')
+        .eq('user_id', user.id)
+
+      const predsMap = {}
+      predictionsData?.forEach(p => {
+        predsMap[p.match_id] = p
+      })
+
+      setMatches(matchesData || [])
+      setPredictions(predsMap)
+
+      if (matchesData?.length > 0) {
+        setActiveGroup(prev => prev ?? (matchesData[0].group_name || 'Sin grupo'))
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [user.id])
+
   useEffect(() => {
     fetchData()
-  }, [])
-
-  const fetchData = async () => {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('status')
-      .eq('id', user.id)
-      .single()
-
-    setUserStatus(profile?.status || 'pendiente')
-
-    const { data: matchesData } = await supabase
-      .from('matches')
-      .select('*')
-      .order('match_date', { ascending: true })
-
-    const { data: predictionsData } = await supabase
-      .from('predictions')
-      .select('*')
-      .eq('user_id', user.id)
-
-    const predsMap = {}
-    predictionsData?.forEach(p => {
-      predsMap[p.match_id] = p
-    })
-
-    setMatches(matchesData || [])
-    setPredictions(predsMap)
-    setLoading(false)
-
-    if (matchesData?.length > 0) {
-      const firstGroup = matchesData[0].group_name || 'Sin grupo'
-      setActiveGroup(firstGroup)
-    }
-  }
+  }, [fetchData])
 
   // ── Cálculo de puntos acumulados ──────────────────────────────────────
   const finishedMatches = matches.filter(m => m.status === 'finished')
@@ -107,8 +109,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Banner de puntos ── */}
-     {finishedMatches.length > 0 && (
-
+      {finishedMatches.length > 0 && (
         <div className="points-summary-banner">
           <div className="points-summary-main">
             <span className="points-summary-label">Mis puntos</span>

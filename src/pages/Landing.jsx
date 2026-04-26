@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { calculatePrizes, formatARS, PRIZE_TIERS, ENTRY_FEE, PRIZE_POOL_PERCENTAGE } from '../utils/prizeCalculator';
 import '../styles/Landing.css';
-import { supabase, getFlagUrl } from '../lib/supabase'
-
-
+import { supabase, getFlagUrl } from '../lib/supabase';
 
 const MEDAL_ICONS = ['🥇', '🥈', '🥉'];
 const POSITION_LABELS = [
@@ -29,6 +27,20 @@ function getNextTierInfo(activePlayers) {
     nextPrizes: nextTier.prizes,
     nextFirstPrize: Math.round(nextPool * nextTier.percentages[0])
   };
+}
+
+// Formatea fecha de partido — retorna null si la fecha es inválida
+function formatMatchDate(dateStr) {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('es-AR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 
 export default function Landing() {
@@ -87,20 +99,10 @@ export default function Landing() {
     return () => clearInterval(timer);
   }, [activePlayers]);
 
+  // playerCount mínimo 1 para evitar división por cero en cálculo de premios
   const playerCount = Math.max(activePlayers, 1);
   const { totalPool, prizes } = calculatePrizes(playerCount);
   const nextTierInfo = getNextTierInfo(playerCount);
-
-  const formatMatchDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-AR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   return (
     <div className="landing">
@@ -209,50 +211,51 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── PROXIMOS PARTIDOS ── */}
-<section className="landing-matches">
-  <h2 className="section-title">📅 Próximos partidos</h2>
-  {loading ? (
-    <p className="loading-text">Cargando partidos...</p>
-  ) : upcomingMatches.length === 0 ? (
-    <p className="loading-text">⚽ Próximamente...</p>
-  ) : (
-    <div className="matches-list">
-      {upcomingMatches.map(match => (
-        <div key={match.id} className="match-card">
-          <div className="match-teams">
-            <span className="team">
-              {getFlagUrl(match.home_flag) && (
-                <img
-                  src={getFlagUrl(match.home_flag)}
-                  alt={match.home_team}
-                  className="flag-img"
-                />
-              )}
-              {match.home_team}
-            </span>
-            <span className="vs">vs</span>
-            <span className="team">
-              {getFlagUrl(match.away_flag) && (
-                <img
-                  src={getFlagUrl(match.away_flag)}
-                  alt={match.away_team}
-                  className="flag-img"
-                />
-              )}
-              {match.away_team}
-            </span>
+      {/* ── PRÓXIMOS PARTIDOS ── */}
+      <section className="landing-matches">
+        <h2 className="section-title">📅 Próximos partidos</h2>
+        {loading ? (
+          <p className="loading-text">Cargando partidos...</p>
+        ) : upcomingMatches.length === 0 ? (
+          <p className="loading-text">⚽ Próximamente...</p>
+        ) : (
+          <div className="matches-list">
+            {upcomingMatches.map(match => (
+              <div key={match.id} className="match-card">
+                <div className="match-teams">
+                  <span className="team">
+                    {match.home_flag && (
+                      <img
+                        src={getFlagUrl(match.home_flag)}
+                        alt={match.home_team}
+                        className="flag-img"
+                      />
+                    )}
+                    {match.home_team}
+                  </span>
+                  <span className="vs">vs</span>
+                  <span className="team">
+                    {match.away_flag && (
+                      <img
+                        src={getFlagUrl(match.away_flag)}
+                        alt={match.away_team}
+                        className="flag-img"
+                      />
+                    )}
+                    {match.away_team}
+                  </span>
+                </div>
+                <div className="match-info">
+                  <span className="match-group">{match.group_name}</span>
+                  <span className="match-date">
+                    {formatMatchDate(match.match_date) ?? 'Fecha por confirmar'}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="match-info">
-            <span className="match-group">{match.group_name}</span>
-            <span className="match-date">{formatMatchDate(match.match_date)}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  )}
-</section>
-
+        )}
+      </section>
 
       {/* ── CTA FINAL ── */}
       <section className="landing-cta">

@@ -4,11 +4,28 @@ import { supabase } from '../lib/supabase'
 export default function Leaderboard() {
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  const fetchLeaderboard = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, points')
+        .eq('status', 'activo')
+        .order('points', { ascending: false })
+
+      if (error) throw error
+      setPlayers(data || [])
+    } catch (err) {
+      setError('No se pudo cargar la tabla.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     fetchLeaderboard()
 
-    // Suscripción en tiempo real
     const channel = supabase
       .channel('leaderboard')
       .on(
@@ -21,26 +38,20 @@ export default function Leaderboard() {
     return () => supabase.removeChannel(channel)
   }, [])
 
-  const fetchLeaderboard = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('username, points')
-      .order('points', { ascending: false })
-
-    setPlayers(data || [])
-    setLoading(false)
-  }
-
   const getMedal = (index) => {
-    if (index === 0) return '🥇'
-    if (index === 1) return '🥈'
-    if (index === 2) return '🥉'
-    return `#${index + 1}`
+    const medals = ['🥇', '🥈', '🥉']
+    return medals[index] ?? `#${index + 1}`
   }
 
   if (loading) return (
     <div className="main-container">
       <p style={{ color: 'var(--text-muted)' }}>Cargando tabla...</p>
+    </div>
+  )
+
+  if (error) return (
+    <div className="main-container">
+      <p style={{ color: 'var(--error)' }}>{error}</p>
     </div>
   )
 
@@ -59,7 +70,7 @@ export default function Leaderboard() {
         ) : (
           players.map((player, index) => (
             <div
-              key={player.username}
+              key={player.id}
               className={`leaderboard-row ${index < 3 ? 'top-three' : ''}`}
             >
               <div className="leaderboard-rank">
@@ -69,7 +80,7 @@ export default function Leaderboard() {
                 {player.username}
               </div>
               <div className="leaderboard-points">
-                {player.points} pts
+                {player.points ?? 0} pts
               </div>
             </div>
           ))

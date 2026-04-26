@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 import { supabase, getFlagUrl } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 export default function Admin() {
   const { isAdmin, loading } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const [activeTab, setActiveTab] = useState('results')
   const [matches, setMatches] = useState([])
   const [initialLoad, setInitialLoad] = useState(true)
@@ -46,12 +45,11 @@ export default function Admin() {
 
   const fetchPlayers = async () => {
     setLoadingPlayers(true)
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('profiles')
       .select('id, username, email, points, status, payment_method, created_at, is_admin')
       .order('created_at', { ascending: false })
 
-    if (error) console.error('Error fetching players:', error)
     setPlayers(data || [])
     setLoadingPlayers(false)
   }
@@ -74,7 +72,6 @@ export default function Admin() {
 
     if (error) {
       alert('Error al confirmar pago: ' + error.message)
-      console.error('Confirm payment error:', error)
     } else {
       setPlayers(prev =>
         prev.map(p =>
@@ -107,13 +104,7 @@ export default function Admin() {
       .delete()
       .eq('id', player.id)
 
-    const { error } = await supabase.rpc('delete_user', {
-      user_id: player.id
-    })
-
-    if (error) {
-      console.error('Error eliminando usuario de auth:', error)
-    }
+    await supabase.rpc('delete_user', { user_id: player.id })
 
     setDeletingPlayer(null)
     fetchPlayers()
@@ -135,7 +126,6 @@ export default function Admin() {
 
     if (error) {
       alert('Error al actualizar: ' + error.message)
-      console.error('Toggle admin error:', error)
     } else {
       setPlayers(prev =>
         prev.map(p =>
@@ -542,7 +532,6 @@ export default function Admin() {
                       flexWrap: 'wrap',
                       gap: '0.3rem'
                     }}>
-                      {/* Badge admin */}
                       {player.is_admin && (
                         <span style={{
                           fontSize: '0.75rem',
@@ -555,7 +544,6 @@ export default function Admin() {
                           👑 Admin
                         </span>
                       )}
-                      {/* Badge estado pago */}
                       <span style={{
                         fontSize: '0.75rem',
                         padding: '0.2rem 0.6rem',
@@ -577,7 +565,6 @@ export default function Admin() {
                     alignItems: 'flex-end',
                     flexShrink: 0
                   }}>
-                    {/* Botón confirmar pago */}
                     {player.status === 'pendiente' && (
                       <button
                         onClick={() => handleConfirmPayment(player)}
@@ -599,7 +586,6 @@ export default function Admin() {
                       </button>
                     )}
 
-                    {/* Botón toggle admin */}
                     <button
                       onClick={() => handleToggleAdmin(player)}
                       disabled={togglingAdmin === player.id}
@@ -623,7 +609,6 @@ export default function Admin() {
                           : '⭐ Hacer Admin'}
                     </button>
 
-                    {/* Botón eliminar */}
                     <button
                       onClick={() => handleDeletePlayer(player)}
                       disabled={deletingPlayer === player.id}
