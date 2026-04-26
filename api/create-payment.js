@@ -1,12 +1,12 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { userId, userEmail } = req.body;
+  const { userId, userEmail } = req.body
 
   if (!userId || !userEmail) {
-    return res.status(400).json({ error: 'Faltan datos' });
+    return res.status(400).json({ error: 'Faltan datos' })
   }
 
   try {
@@ -29,6 +29,7 @@ export default async function handler(req, res) {
           email: userEmail
         },
         external_reference: userId,
+        notification_url: 'https://prode-mundial-tau.vercel.app/api/confirm-payment',
         back_urls: {
           success: 'https://prode-mundial-tau.vercel.app/payment/success',
           failure: 'https://prode-mundial-tau.vercel.app/payment/failure',
@@ -36,17 +37,17 @@ export default async function handler(req, res) {
         },
         auto_return: 'approved'
       })
-    });
+    })
 
-    const data = await response.json();
+    const data = await response.json()
 
     if (!data.init_point) {
-      return res.status(500).json({ error: 'Error al crear preferencia', detail: data });
+      return res.status(500).json({ error: 'Error al crear preferencia', detail: data })
     }
 
-    return res.status(200).json({ init_point: data.init_point });
+    return res.status(200).json({ init_point: data.init_point })
 
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message })
   }
 }
