@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
 import { calculatePrizes, formatARS, PRIZE_TIERS, ENTRY_FEE, PRIZE_POOL_PERCENTAGE } from '../utils/prizeCalculator';
 import '../styles/Landing.css';
 import { supabase, getFlagUrl } from '../lib/supabase'
+
 
 
 const MEDAL_ICONS = ['🥇', '🥈', '🥉'];
