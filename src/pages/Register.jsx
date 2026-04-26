@@ -128,7 +128,7 @@ function StepTransferInfo({ onConfirm, onBack }) {
         </div>
 
         <div className="transfer-contact">
-          <p>📱 Después de transferir, enviá el comprobante por WhatsApp:</p>
+          <p>📱 Después de transferir, enviá el comprobante por WhatsApp y el email con el que te registraste:</p>
           <a
             href={`https://wa.me/${TRANSFER_INFO.whatsapp.replace(/\D/g, '')}`}
             target="_blank"
