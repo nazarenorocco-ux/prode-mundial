@@ -26,33 +26,38 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        setUser(session?.user ?? null)
 
-      if (session?.user) {
-        const admin = await fetchProfile(session.user.id)
-        setIsAdmin(admin)
+        if (session?.user) {
+          const admin = await fetchProfile(session.user.id)
+          setIsAdmin(admin)
+        }
+      } catch (error) {
+        console.error('Error iniciando auth:', error)
+      } finally {
+        setLoading(false)
       }
-
-      setLoading(false)
     }
 
     initAuth()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'INITIAL_SESSION') return
+        // Solo manejamos cambios reales, no la sesión inicial
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+          setUser(session?.user ?? null)
 
-        setUser(session?.user ?? null)
+          if (session?.user) {
+            const admin = await fetchProfile(session.user.id)
+            setIsAdmin(admin)
+          } else {
+            setIsAdmin(false)
+          }
 
-        if (session?.user) {
-          const admin = await fetchProfile(session.user.id)
-          setIsAdmin(admin)
-        } else {
-          setIsAdmin(false)
+          setLoading(false)
         }
-
-        setLoading(false)
       }
     )
 
