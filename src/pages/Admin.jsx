@@ -41,11 +41,12 @@ export default function Admin() {
 
   const fetchPlayers = async () => {
     setLoadingPlayers(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, points, status, payment_method, created_at')
+      .select('id, username, email, points, status, payment_method, created_at')
       .order('created_at', { ascending: false })
 
+    if (error) console.error('Error fetching players:', error)
     setPlayers(data || [])
     setLoadingPlayers(false)
   }
@@ -60,7 +61,7 @@ export default function Admin() {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ 
+      .update({
         status: 'activo',
         payment_method: 'manual'
       })
@@ -68,6 +69,16 @@ export default function Admin() {
 
     if (error) {
       alert('Error al confirmar pago: ' + error.message)
+      console.error('Confirm payment error:', error)
+    } else {
+      // Actualizar localmente sin refetch
+      setPlayers(prev =>
+        prev.map(p =>
+          p.id === player.id
+            ? { ...p, status: 'activo', payment_method: 'manual' }
+            : p
+        )
+      )
     }
 
     setConfirmingPlayer(null)
@@ -198,8 +209,7 @@ export default function Admin() {
           borderRadius: '999px',
           background: '#009ee322',
           color: '#009ee3',
-          fontWeight: '600',
-          marginLeft: '0.5rem'
+          fontWeight: '600'
         }}>
           💳 MercadoPago
         </span>
@@ -212,9 +222,8 @@ export default function Admin() {
           padding: '0.2rem 0.6rem',
           borderRadius: '999px',
           background: '#6c757d22',
-          color: '#6c757d',
-          fontWeight: '600',
-          marginLeft: '0.5rem'
+          color: '#adb5bd',
+          fontWeight: '600'
         }}>
           💵 Efectivo
         </span>
@@ -227,15 +236,13 @@ export default function Admin() {
         borderRadius: '999px',
         background: '#ffffff11',
         color: 'var(--text-muted)',
-        fontWeight: '600',
-        marginLeft: '0.5rem'
+        fontWeight: '600'
       }}>
         — Sin registrar
       </span>
     )
   }
 
-  // Contadores para el tab
   const activePlayers = players.filter(p => p.status === 'activo').length
   const pendingPlayers = players.filter(p => p.status === 'pendiente').length
   const mpPlayers = players.filter(p => p.payment_method === 'mercadopago').length
@@ -414,49 +421,33 @@ export default function Admin() {
       {/* Tab: Jugadores */}
       {activeTab === 'players' && (
         <>
-          {/* Resumen de estados */}
+          {/* Resumen */}
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
             <div style={{
-              background: '#22c55e22',
-              border: '1px solid #22c55e44',
-              borderRadius: '10px',
-              padding: '0.6rem 1rem',
-              fontSize: '0.9rem',
-              color: '#22c55e',
-              fontWeight: '600'
+              background: '#22c55e22', border: '1px solid #22c55e44',
+              borderRadius: '10px', padding: '0.6rem 1rem',
+              fontSize: '0.9rem', color: '#22c55e', fontWeight: '600'
             }}>
               ✅ Activos: {activePlayers}
             </div>
             <div style={{
-              background: '#f59e0b22',
-              border: '1px solid #f59e0b44',
-              borderRadius: '10px',
-              padding: '0.6rem 1rem',
-              fontSize: '0.9rem',
-              color: '#f59e0b',
-              fontWeight: '600'
+              background: '#f59e0b22', border: '1px solid #f59e0b44',
+              borderRadius: '10px', padding: '0.6rem 1rem',
+              fontSize: '0.9rem', color: '#f59e0b', fontWeight: '600'
             }}>
               ⏳ Pendientes: {pendingPlayers}
             </div>
             <div style={{
-              background: '#009ee322',
-              border: '1px solid #009ee344',
-              borderRadius: '10px',
-              padding: '0.6rem 1rem',
-              fontSize: '0.9rem',
-              color: '#009ee3',
-              fontWeight: '600'
+              background: '#009ee322', border: '1px solid #009ee344',
+              borderRadius: '10px', padding: '0.6rem 1rem',
+              fontSize: '0.9rem', color: '#009ee3', fontWeight: '600'
             }}>
               💳 MercadoPago: {mpPlayers}
             </div>
             <div style={{
-              background: '#6c757d22',
-              border: '1px solid #6c757d44',
-              borderRadius: '10px',
-              padding: '0.6rem 1rem',
-              fontSize: '0.9rem',
-              color: '#6c757d',
-              fontWeight: '600'
+              background: '#6c757d22', border: '1px solid #6c757d44',
+              borderRadius: '10px', padding: '0.6rem 1rem',
+              fontSize: '0.9rem', color: '#adb5bd', fontWeight: '600'
             }}>
               💵 Efectivo: {manualPlayers}
             </div>
@@ -479,17 +470,32 @@ export default function Admin() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '0.8rem 1rem',
+                    gap: '1rem',
                     borderLeft: `4px solid ${player.status === 'activo' ? '#22c55e' : '#f59e0b'}`
                   }}
                 >
-                  <div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
                       👤 {player.username || 'Sin nombre'}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                      🏆 {player.points} pts · Registrado: {formatDate(player.created_at)}
+                    <div style={{
+                      fontSize: '0.8rem',
+                      color: 'var(--text-muted)',
+                      marginTop: '0.2rem',
+                      wordBreak: 'break-all'
+                    }}>
+                      ✉️ {player.email || 'Sin email'}
                     </div>
-                    <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                      🏆 {player.points ?? 0} pts · Registrado: {formatDate(player.created_at)}
+                    </div>
+                    <div style={{
+                      marginTop: '0.4rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '0.3rem'
+                    }}>
                       <span style={{
                         fontSize: '0.75rem',
                         padding: '0.2rem 0.6rem',
@@ -504,7 +510,13 @@ export default function Admin() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.4rem',
+                    alignItems: 'flex-end',
+                    flexShrink: 0
+                  }}>
                     {player.status === 'pendiente' && (
                       <button
                         onClick={() => handleConfirmPayment(player)}
