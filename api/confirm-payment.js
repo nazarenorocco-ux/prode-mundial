@@ -41,7 +41,10 @@ export default async function handler(req, res) {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ status: 'activo' })
+      .update({ 
+        status: 'activo',
+        payment_method: 'mercadopago'
+      })
       .eq('id', userId)
 
     if (error) {

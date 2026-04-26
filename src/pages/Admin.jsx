@@ -43,7 +43,7 @@ export default function Admin() {
     setLoadingPlayers(true)
     const { data } = await supabase
       .from('profiles')
-      .select('id, username, points, status, created_at')
+      .select('id, username, points, status, payment_method, created_at')
       .order('created_at', { ascending: false })
 
     setPlayers(data || [])
@@ -60,7 +60,10 @@ export default function Admin() {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ status: 'activo' })
+      .update({ 
+        status: 'activo',
+        payment_method: 'manual'
+      })
       .eq('id', player.id)
 
     if (error) {
@@ -186,9 +189,57 @@ export default function Admin() {
     })
   }
 
+  const getPaymentMethodBadge = (method) => {
+    if (method === 'mercadopago') {
+      return (
+        <span style={{
+          fontSize: '0.75rem',
+          padding: '0.2rem 0.6rem',
+          borderRadius: '999px',
+          background: '#009ee322',
+          color: '#009ee3',
+          fontWeight: '600',
+          marginLeft: '0.5rem'
+        }}>
+          💳 MercadoPago
+        </span>
+      )
+    }
+    if (method === 'manual') {
+      return (
+        <span style={{
+          fontSize: '0.75rem',
+          padding: '0.2rem 0.6rem',
+          borderRadius: '999px',
+          background: '#6c757d22',
+          color: '#6c757d',
+          fontWeight: '600',
+          marginLeft: '0.5rem'
+        }}>
+          💵 Efectivo
+        </span>
+      )
+    }
+    return (
+      <span style={{
+        fontSize: '0.75rem',
+        padding: '0.2rem 0.6rem',
+        borderRadius: '999px',
+        background: '#ffffff11',
+        color: 'var(--text-muted)',
+        fontWeight: '600',
+        marginLeft: '0.5rem'
+      }}>
+        — Sin registrar
+      </span>
+    )
+  }
+
   // Contadores para el tab
   const activePlayers = players.filter(p => p.status === 'activo').length
   const pendingPlayers = players.filter(p => p.status === 'pendiente').length
+  const mpPlayers = players.filter(p => p.payment_method === 'mercadopago').length
+  const manualPlayers = players.filter(p => p.payment_method === 'manual').length
 
   if (initialLoad) return (
     <div className="main-container">
@@ -364,7 +415,7 @@ export default function Admin() {
       {activeTab === 'players' && (
         <>
           {/* Resumen de estados */}
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
             <div style={{
               background: '#22c55e22',
               border: '1px solid #22c55e44',
@@ -386,6 +437,28 @@ export default function Admin() {
               fontWeight: '600'
             }}>
               ⏳ Pendientes: {pendingPlayers}
+            </div>
+            <div style={{
+              background: '#009ee322',
+              border: '1px solid #009ee344',
+              borderRadius: '10px',
+              padding: '0.6rem 1rem',
+              fontSize: '0.9rem',
+              color: '#009ee3',
+              fontWeight: '600'
+            }}>
+              💳 MercadoPago: {mpPlayers}
+            </div>
+            <div style={{
+              background: '#6c757d22',
+              border: '1px solid #6c757d44',
+              borderRadius: '10px',
+              padding: '0.6rem 1rem',
+              fontSize: '0.9rem',
+              color: '#6c757d',
+              fontWeight: '600'
+            }}>
+              💵 Efectivo: {manualPlayers}
             </div>
           </div>
 
@@ -416,7 +489,7 @@ export default function Admin() {
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                       🏆 {player.points} pts · Registrado: {formatDate(player.created_at)}
                     </div>
-                    <div style={{ marginTop: '0.4rem' }}>
+                    <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem' }}>
                       <span style={{
                         fontSize: '0.75rem',
                         padding: '0.2rem 0.6rem',
@@ -427,6 +500,7 @@ export default function Admin() {
                       }}>
                         {player.status === 'activo' ? '✅ Pago confirmado' : '⏳ Pago pendiente'}
                       </span>
+                      {getPaymentMethodBadge(player.payment_method)}
                     </div>
                   </div>
 
