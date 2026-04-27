@@ -40,48 +40,11 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     isMounted.current = true
-    let settled = false
-
-    const settle = () => {
-      if (!settled && isMounted.current) {
-        settled = true
-        setLoading(false)
-      }
-    }
-
-    // ── Safety net: si en 3s no resolvió, desbloqueamos igual ──
-    const timeout = setTimeout(() => {
-      console.warn('⚠️ Auth timeout — forzando loading=false')
-      settle()
-    }, 3000)
-
-    const initAuth = async () => {
-      try {
-        console.log('🔄 initAuth start')
-        const { data: { session }, error } = await supabase.auth.getSession()
-        console.log('✅ getSession result:', { session, error })
-
-        if (!isMounted.current) return
-
-        if (session?.user) {
-          setUser(session.user)
-          await fetchProfile(session.user.id)
-        }
-      } catch (err) {
-        console.error('❌ initAuth error:', err)
-      } finally {
-        clearTimeout(timeout)
-        settle()
-      }
-    }
-
-    initAuth()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔔 onAuthStateChange:', event, session?.user?.email)
         if (!isMounted.current) return
-        if (event === 'INITIAL_SESSION') return
 
         if (session?.user) {
           setUser(session.user)
@@ -90,12 +53,17 @@ export function AuthProvider({ children }) {
           setUser(null)
           setIsAdmin(false)
         }
+
+        // INITIAL_SESSION siempre llega primero — usarlo para resolver loading
+        if (event === 'INITIAL_SESSION') {
+          console.log('✅ INITIAL_SESSION procesado — loading=false')
+          if (isMounted.current) setLoading(false)
+        }
       }
     )
 
     return () => {
       isMounted.current = false
-      clearTimeout(timeout)
       subscription.unsubscribe()
     }
   }, [])
