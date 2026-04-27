@@ -149,15 +149,16 @@ function StepTransferInfo({ onConfirm, onBack }) {
 
 // ─── PASO 2B / 3: Formulario de registro ──────────────────────────────────
 function StepRegisterForm({ paymentMethod, onBack }) {
-  const [email, setEmail]       = useState('')
-  const [password, setPassword] = useState('')
-  const [username, setUsername] = useState('')
-  const [error, setError]       = useState('')
-  const [loading, setLoading]   = useState(false)
+  const [email, setEmail]                   = useState('')
+  const [password, setPassword]             = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [username, setUsername]             = useState('')
+  const [error, setError]                   = useState('')
+  const [loading, setLoading]               = useState(false)
   const navigate = useNavigate()
 
   const validate = () => {
-    if (!username.trim() || !email.trim() || !password.trim()) {
+    if (!username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
       return 'Completá todos los campos'
     }
     if (username.trim().length < USERNAME_MIN) {
@@ -168,6 +169,9 @@ function StepRegisterForm({ paymentMethod, onBack }) {
     }
     if (password.length < 6) {
       return 'La contraseña debe tener mínimo 6 caracteres'
+    }
+    if (password !== confirmPassword) {
+      return 'Las contraseñas no coinciden'
     }
     return null
   }
@@ -182,7 +186,6 @@ function StepRegisterForm({ paymentMethod, onBack }) {
     setLoading(true)
 
     try {
-      // 1. Crear usuario en Supabase Auth
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -191,7 +194,6 @@ function StepRegisterForm({ paymentMethod, onBack }) {
       if (signUpError) throw signUpError
       if (!data.user) throw new Error('No se pudo crear el usuario')
 
-      // 2. Escribir perfil — upsert para evitar race condition con el trigger
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
@@ -204,7 +206,6 @@ function StepRegisterForm({ paymentMethod, onBack }) {
 
       if (profileError) throw profileError
 
-      // 3. Redirigir según método de pago
       if (paymentMethod === 'mp') {
         const response = await fetch('/api/create-payment', {
           method: 'POST',
@@ -221,10 +222,8 @@ function StepRegisterForm({ paymentMethod, onBack }) {
           throw new Error('No se recibió el link de pago de MercadoPago')
         }
 
-        // Redirigir — si falla, el catch no lo atrapará (asignación sin throw)
-        // pero el usuario verá que la página no cambió y podrá reintentar
         window.location.href = paymentData.init_point
-        return // evitar setLoading(false) — la página se está cerrando
+        return
       }
 
       navigate('/dashboard', { replace: true })
@@ -287,6 +286,17 @@ function StepRegisterForm({ paymentMethod, onBack }) {
             />
           </div>
 
+          <div className="form-group">
+            <label>Repetir contraseña</label>
+            <input
+              type="password"
+              placeholder="Repetí tu contraseña"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </div>
+
           <button
             type="submit"
             className="btn-mercadopago"
@@ -309,6 +319,7 @@ function StepRegisterForm({ paymentMethod, onBack }) {
     </div>
   )
 }
+
 
 // ─── Componente principal con máquina de estados ──────────────────────────
 export default function Register() {
