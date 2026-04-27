@@ -32,13 +32,17 @@ function formatMatchDate(dateStr) {
   if (!dateStr) return null;
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return null;
-  return date.toLocaleDateString('es-AR', {
+  return date.toLocaleString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    hour12: false
   });
+}
+
 }
 
 export default function Landing() {
