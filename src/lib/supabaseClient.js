@@ -3,7 +3,13 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = 'https://qjjdzeixhwicijuathqx.supabase.co'
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqamR6ZWl4aHdpY2lqdWF0aHF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNTIzMzUsImV4cCI6MjA5MjYyODMzNX0.iMGKa9hYnVvw1QcFpvMj3bft7fSnSRYcPRqU3W49WhQ'
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionFromUrl: true
+  }
+})
 
 /**
  * Devuelve la URL de la bandera para un equipo dado.
@@ -44,6 +50,3 @@ export function getFlagUrl(flagValue) {
 
   return null
 }
-
-// TEMPORAL para testing — borrar después
-window._sb = supabase
