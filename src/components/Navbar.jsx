@@ -13,8 +13,6 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path ? 'active' : ''
 
-  // Mostrar username si está disponible en metadata (se guarda en signUp),
-  // fallback al email para cuentas antiguas o si el metadata no llegó aún
   const displayName =
     user?.user_metadata?.username ||
     user?.email ||
@@ -22,7 +20,7 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <Link to={user ? '/dashboard' : '/'} className="navbar-brand">
+      <Link to="/" className="navbar-brand">
         ⚽ Prode Mundial 2026
       </Link>
 
