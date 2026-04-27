@@ -1,6 +1,6 @@
 // src/pages/Admin.jsx
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabaseClient'
+import { supabase, getFlagUrl } from '../lib/supabaseClient'  // ✅ importar getFlagUrl
 import { useAuth } from '../context/AuthContext'
 import { formatearFecha } from '../utils/dateUtils'
 
@@ -88,6 +88,249 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
   )
 }
 
+// ─── Sub-componente: Fila de partido con banderas ─────────────────────────────
+function MatchRow({ match, editingMatch, homeScore, awayScore, savingResult,
+                    savedMatchId, resultError, onEdit, onSave, onCancel,
+                    onHomeScoreChange, onAwayScoreChange }) {
+
+  const isEditing = editingMatch?.id === match.id
+
+  return (
+    <div className="card" style={{ padding: '1rem 1.25rem' }}>
+
+      {/* ── Cabecera: equipos + fecha ── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.5rem',
+        marginBottom: '0.6rem'
+      }}>
+
+        {/* Equipos con banderas */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+
+          {/* Local */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            {match.home_flag && (
+              <img
+                src={getFlagUrl(match.home_flag)}
+                alt={match.home_team}
+                style={{ width: '22px', height: '16px', objectFit: 'cover', borderRadius: '2px' }}
+              />
+            )}
+            <span style={{ fontWeight: '700', fontSize: '0.95rem' }}>
+              {match.home_team}
+            </span>
+          </div>
+
+          <span style={{ color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>
+            vs
+          </span>
+
+          {/* Visitante */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            {match.away_flag && (
+              <img
+                src={getFlagUrl(match.away_flag)}
+                alt={match.away_team}
+                style={{ width: '22px', height: '16px', objectFit: 'cover', borderRadius: '2px' }}
+              />
+            )}
+            <span style={{ fontWeight: '700', fontSize: '0.95rem' }}>
+              {match.away_team}
+            </span>
+          </div>
+
+          {/* Badge grupo */}
+          {match.group_name && (
+            <span style={{
+              fontSize: '0.72rem',
+              color: 'var(--text-muted)',
+              background: 'var(--bg-secondary)',
+              padding: '0.1rem 0.4rem',
+              borderRadius: '4px',
+              marginLeft: '0.25rem'
+            }}>
+              Grupo {match.group_name}
+            </span>
+          )}
+        </div>
+
+        {/* Fecha */}
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+          📅 {formatearFecha(match.match_date)}
+        </div>
+      </div>
+
+      {/* ── Resultado actual (si está finalizado) ── */}
+      {match.status === 'finished' && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          fontSize: '0.9rem',
+          color: 'var(--text-muted)',
+          marginBottom: '0.6rem',
+          flexWrap: 'wrap'
+        }}>
+          <span>Resultado:</span>
+
+          {/* Bandera local mini */}
+          {match.home_flag && (
+            <img
+              src={getFlagUrl(match.home_flag)}
+              alt={match.home_team}
+              style={{ width: '18px', height: '13px', objectFit: 'cover', borderRadius: '2px' }}
+            />
+          )}
+
+          <strong style={{ color: 'var(--text-primary)', fontSize: '1rem' }}>
+            {match.home_score} - {match.away_score}
+          </strong>
+
+          {/* Bandera visitante mini */}
+          {match.away_flag && (
+            <img
+              src={getFlagUrl(match.away_flag)}
+              alt={match.away_team}
+              style={{ width: '18px', height: '13px', objectFit: 'cover', borderRadius: '2px' }}
+            />
+          )}
+
+          <span style={{
+            fontSize: '0.72rem',
+            background: '#166534',
+            color: '#4ade80',
+            padding: '0.1rem 0.4rem',
+            borderRadius: '4px',
+            fontWeight: '600'
+          }}>
+            ✅ Finalizado
+          </span>
+
+          {savedMatchId === match.id && (
+            <span style={{
+              fontSize: '0.72rem',
+              background: 'var(--accent)',
+              color: '#fff',
+              padding: '0.1rem 0.5rem',
+              borderRadius: '4px',
+              fontWeight: '600'
+            }}>
+              ✓ Guardado
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* ── Editor de resultado / Botón cargar ── */}
+      {isEditing ? (
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+
+          {/* Input local con bandera */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            {match.home_flag && (
+              <img
+                src={getFlagUrl(match.home_flag)}
+                alt={match.home_team}
+                style={{ width: '20px', height: '14px', objectFit: 'cover', borderRadius: '2px' }}
+              />
+            )}
+            <input
+              type="number" min="0" max="20"
+              value={homeScore}
+              onChange={e => onHomeScoreChange(e.target.value)}
+              placeholder="0"
+              style={{
+                width: '60px', padding: '0.4rem',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                textAlign: 'center',
+                fontSize: '1rem',
+                fontWeight: '700'
+              }}
+            />
+          </div>
+
+          <span style={{ color: 'var(--text-muted)', fontWeight: '700', fontSize: '1.1rem' }}>
+            -
+          </span>
+
+          {/* Input visitante con bandera */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <input
+              type="number" min="0" max="20"
+              value={awayScore}
+              onChange={e => onAwayScoreChange(e.target.value)}
+              placeholder="0"
+              style={{
+                width: '60px', padding: '0.4rem',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                textAlign: 'center',
+                fontSize: '1rem',
+                fontWeight: '700'
+              }}
+            />
+            {match.away_flag && (
+              <img
+                src={getFlagUrl(match.away_flag)}
+                alt={match.away_team}
+                style={{ width: '20px', height: '14px', objectFit: 'cover', borderRadius: '2px' }}
+              />
+            )}
+          </div>
+
+          {/* Botones */}
+          <button
+            className="btn btn-primary"
+            onClick={() => onSave(match)}
+            disabled={savingResult}
+            style={{ fontSize: '0.85rem', padding: '0.4rem 0.9rem' }}
+          >
+            {savingResult ? '⏳ Guardando...' : '✓ Guardar'}
+          </button>
+          <button
+            className="btn"
+            onClick={onCancel}
+            style={{
+              fontSize: '0.85rem', padding: '0.4rem 0.9rem',
+              background: 'var(--bg-secondary)'
+            }}
+          >
+            Cancelar
+          </button>
+
+          {resultError && (
+            <span style={{ fontSize: '0.82rem', color: 'var(--error)', fontWeight: '600' }}>
+              ⚠️ {resultError}
+            </span>
+          )}
+        </div>
+      ) : (
+        <button
+          className="btn"
+          onClick={() => onEdit(match)}
+          style={{
+            fontSize: '0.82rem',
+            padding: '0.3rem 0.75rem',
+            background: 'var(--bg-secondary)',
+            color: 'var(--text-secondary)'
+          }}
+        >
+          {match.status === 'finished' ? '✏️ Editar resultado' : '➕ Cargar resultado'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ─── Componente Principal ─────────────────────────────────────────────────────
 export default function Admin() {
   const { user, isSuperAdmin } = useAuth()
@@ -125,7 +368,7 @@ export default function Admin() {
   const [togglingStatus, setTogglingStatus] = useState(false)
 
   // Modal
-  const [modal, setModal] = useState(null) // { message, onConfirm }
+  const [modal, setModal] = useState(null)
 
   // ── Cargar prode_status ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -158,7 +401,7 @@ export default function Admin() {
     const h = parseInt(homeScore)
     const a = parseInt(awayScore)
     if (isNaN(h) || isNaN(a) || h < 0 || a < 0 || h > 20 || a > 20) {
-      setResultError('Scores inválidos (0-20)')
+      setResultError('Scores inválidos (0–20)')
       return
     }
     setSavingResult(true)
@@ -171,7 +414,7 @@ export default function Admin() {
     if (error) { setResultError(error.message); return }
 
     setSavedMatchId(match.id)
-    setTimeout(() => setSavedMatchId(null), 2000)
+    setTimeout(() => setSavedMatchId(null), 2500)
     setEditingMatch(null)
     setHomeScore('')
     setAwayScore('')
@@ -185,7 +428,11 @@ export default function Admin() {
     setCalcMessage('')
     const { error } = await supabase.rpc('calculate_points')
     setCalculatingPts(false)
-    setCalcMessage(error ? `❌ Error: ${error.message}` : '✅ Puntos calculados correctamente')
+    setCalcMessage(
+      error
+        ? `❌ Error: ${error.message}`
+        : '✅ Puntos calculados correctamente'
+    )
     setTimeout(() => setCalcMessage(''), 4000)
   }
 
@@ -231,10 +478,10 @@ export default function Admin() {
   }
 
   // ── Filtros de partidos ──────────────────────────────────────────────────────
-  const groups = [...new Set(matches.map(m => m.group_name).filter(Boolean))]
+  const groups = [...new Set(matches.map(m => m.group_name).filter(Boolean))].sort()
 
   const filteredMatches = matches.filter(m => {
-    if (matchFilter === 'all') return true
+    if (matchFilter === 'all')      return true
     if (matchFilter === 'finished') return m.status === 'finished'
     if (matchFilter === 'upcoming') return m.status !== 'finished'
     return m.group_name === matchFilter
@@ -242,30 +489,32 @@ export default function Admin() {
 
   // ── Filtros de jugadores ─────────────────────────────────────────────────────
   const filteredPlayers = players.filter(p => {
-    const matchesSearch = p.username?.toLowerCase().includes(playerSearch.toLowerCase()) ||
-                          p.email?.toLowerCase().includes(playerSearch.toLowerCase())
-    const matchesFilter = playerFilter === 'all' ||
-                          (playerFilter === 'activo'   && p.status === 'activo')   ||
-                          (playerFilter === 'pendiente' && p.status === 'pendiente') ||
-                          (playerFilter === 'mp'       && p.payment_method === 'mp') ||
-                          (playerFilter === 'manual'   && p.payment_method === 'manual')
+    const matchesSearch =
+      p.username?.toLowerCase().includes(playerSearch.toLowerCase()) ||
+      p.email?.toLowerCase().includes(playerSearch.toLowerCase())
+    const matchesFilter =
+      playerFilter === 'all' ||
+      (playerFilter === 'activo'    && p.status === 'activo')    ||
+      (playerFilter === 'pendiente' && p.status === 'pendiente') ||
+      (playerFilter === 'mp'        && p.payment_method === 'mp') ||
+      (playerFilter === 'manual'    && p.payment_method === 'manual')
     return matchesSearch && matchesFilter
   })
 
   // ── Métricas jugadores ───────────────────────────────────────────────────────
   const metrics = {
-    total:    players.length,
-    activos:  players.filter(p => p.status === 'activo').length,
-    pending:  players.filter(p => p.status === 'pendiente').length,
-    mp:       players.filter(p => p.payment_method === 'mp').length,
-    manual:   players.filter(p => p.payment_method === 'manual').length,
+    total:   players.length,
+    activos: players.filter(p => p.status === 'activo').length,
+    pending: players.filter(p => p.status === 'pendiente').length,
+    mp:      players.filter(p => p.payment_method === 'mp').length,
+    manual:  players.filter(p => p.payment_method === 'manual').length,
   }
 
   // ────────────────────────────────────────────────────────────────────────────
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '1rem' }}>
 
-      {/* Modal de confirmación */}
+      {/* Modal */}
       {modal && (
         <ConfirmModal
           message={modal.message}
@@ -346,6 +595,7 @@ export default function Admin() {
       ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'results' && (
         <div>
+
           {/* Calcular Puntos */}
           <div style={{
             background: 'var(--card-bg)',
@@ -386,7 +636,7 @@ export default function Admin() {
             </button>
           </div>
 
-          {/* Filtros de partidos */}
+          {/* Filtros */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
             {[
               { value: 'all',      label: 'Todos' },
@@ -427,7 +677,7 @@ export default function Admin() {
             </div>
           )}
 
-          {/* Lista de partidos */}
+          {/* ✅ Lista de partidos con MatchRow */}
           {!loadingMatches && !errorMatches && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {filteredMatches.length === 0 && (
@@ -437,151 +687,31 @@ export default function Admin() {
               )}
 
               {filteredMatches.map(match => (
-                <div
+                <MatchRow
                   key={match.id}
-                  className="card"
-                  style={{ padding: '1rem 1.25rem' }}
-                >
-                  {/* Partido info */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: '0.5rem',
-                    marginBottom: '0.5rem'
-                  }}>
-                    <div>
-                      <span style={{ fontWeight: '700' }}>
-                        {match.home_team} vs {match.away_team}
-                      </span>
-                      {match.group_name && (
-                        <span style={{
-                          marginLeft: '0.5rem',
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          background: 'var(--bg-secondary)',
-                          padding: '0.1rem 0.4rem',
-                          borderRadius: '4px'
-                        }}>
-                          Grupo {match.group_name}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      📅 {formatearFecha(match.match_date)}
-                    </div>
-                  </div>
-
-                  {/* Resultado actual */}
-                  {match.status === 'finished' && (
-                    <div style={{
-                      fontSize: '0.9rem',
-                      color: 'var(--text-muted)',
-                      marginBottom: '0.5rem'
-                    }}>
-                      Resultado:{' '}
-                      <strong style={{ color: 'var(--text-primary)' }}>
-                        {match.home_score} - {match.away_score}
-                      </strong>
-                      {' '}
-                      <span style={{
-                        fontSize: '0.75rem',
-                        background: '#166534',
-                        color: '#4ade80',
-                        padding: '0.1rem 0.4rem',
-                        borderRadius: '4px'
-                      }}>
-                        Finalizado
-                      </span>
-                      {savedMatchId === match.id && (
-                        <span style={{
-                          marginLeft: '0.5rem',
-                          fontSize: '0.75rem',
-                          background: 'var(--accent)',
-                          color: '#fff',
-                          padding: '0.1rem 0.5rem',
-                          borderRadius: '4px',
-                          fontWeight: '600'
-                        }}>
-                          ✓ Guardado
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Editar resultado */}
-                  {editingMatch?.id === match.id ? (
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                      <input
-                        type="number" min="0" max="20"
-                        value={homeScore}
-                        onChange={e => { setResultError(''); setHomeScore(e.target.value) }}
-                        placeholder={match.home_team}
-                        style={{
-                          width: '70px', padding: '0.4rem', borderRadius: '6px',
-                          border: '1px solid var(--border)',
-                          background: 'var(--bg-secondary)', color: 'var(--text-primary)',
-                          textAlign: 'center'
-                        }}
-                      />
-                      <span style={{ color: 'var(--text-muted)' }}>-</span>
-                      <input
-                        type="number" min="0" max="20"
-                        value={awayScore}
-                        onChange={e => { setResultError(''); setAwayScore(e.target.value) }}
-                        placeholder={match.away_team}
-                        style={{
-                          width: '70px', padding: '0.4rem', borderRadius: '6px',
-                          border: '1px solid var(--border)',
-                          background: 'var(--bg-secondary)', color: 'var(--text-primary)',
-                          textAlign: 'center'
-                        }}
-                      />
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => handleSaveResult(match)}
-                        disabled={savingResult}
-                        style={{ fontSize: '0.85rem', padding: '0.4rem 0.9rem' }}
-                      >
-                        {savingResult ? 'Guardando...' : '✓ Guardar'}
-                      </button>
-                      <button
-                        className="btn"
-                        onClick={() => { setEditingMatch(null); setHomeScore(''); setAwayScore(''); setResultError('') }}
-                        style={{
-                          fontSize: '0.85rem', padding: '0.4rem 0.9rem',
-                          background: 'var(--bg-secondary)'
-                        }}
-                      >
-                        Cancelar
-                      </button>
-                      {resultError && (
-                        <span style={{ fontSize: '0.82rem', color: 'var(--error)' }}>
-                          ⚠️ {resultError}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      className="btn"
-                      onClick={() => {
-                        setEditingMatch(match)
-                        setHomeScore(match.home_score ?? '')
-                        setAwayScore(match.away_score ?? '')
-                        setResultError('')
-                      }}
-                      style={{
-                        fontSize: '0.82rem',
-                        padding: '0.3rem 0.75rem',
-                        background: 'var(--bg-secondary)',
-                        color: 'var(--text-secondary)'
-                      }}
-                    >
-                      {match.status === 'finished' ? '✏️ Editar resultado' : '➕ Cargar resultado'}
-                    </button>
-                  )}
-                </div>
+                  match={match}
+                  editingMatch={editingMatch}
+                  homeScore={homeScore}
+                  awayScore={awayScore}
+                  savingResult={savingResult}
+                  savedMatchId={savedMatchId}
+                  resultError={resultError}
+                  onEdit={(m) => {
+                    setEditingMatch(m)
+                    setHomeScore(m.home_score ?? '')
+                    setAwayScore(m.away_score ?? '')
+                    setResultError('')
+                  }}
+                  onSave={handleSaveResult}
+                  onCancel={() => {
+                    setEditingMatch(null)
+                    setHomeScore('')
+                    setAwayScore('')
+                    setResultError('')
+                  }}
+                  onHomeScoreChange={(v) => { setResultError(''); setHomeScore(v) }}
+                  onAwayScoreChange={(v) => { setResultError(''); setAwayScore(v) }}
+                />
               ))}
             </div>
           )}
@@ -593,6 +723,7 @@ export default function Admin() {
       ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'players' && (
         <div>
+
           {/* Métricas */}
           <div style={{
             display: 'grid',
@@ -601,11 +732,11 @@ export default function Admin() {
             marginBottom: '1.25rem'
           }}>
             {[
-              { label: 'Total',     value: metrics.total,   color: 'var(--text-primary)' },
-              { label: '✅ Activos',  value: metrics.activos, color: '#4ade80' },
+              { label: 'Total',        value: metrics.total,   color: 'var(--text-primary)' },
+              { label: '✅ Activos',    value: metrics.activos, color: '#4ade80' },
               { label: '⏳ Pendientes', value: metrics.pending, color: '#facc15' },
-              { label: '💳 MP',      value: metrics.mp,      color: '#60a5fa' },
-              { label: '🖐 Manual',  value: metrics.manual,  color: '#c084fc' },
+              { label: '💳 MP',         value: metrics.mp,      color: '#60a5fa' },
+              { label: '🖐 Manual',     value: metrics.manual,  color: '#c084fc' },
             ].map(m => (
               <div key={m.label} className="card" style={{ textAlign: 'center', padding: '0.75rem' }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: m.color }}>
@@ -637,11 +768,11 @@ export default function Admin() {
             />
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
               {[
-                { value: 'all',      label: 'Todos' },
-                { value: 'activo',   label: '✅ Activos' },
-                { value: 'pendiente',label: '⏳ Pendientes' },
-                { value: 'mp',       label: '💳 MP' },
-                { value: 'manual',   label: '🖐 Manual' },
+                { value: 'all',       label: 'Todos' },
+                { value: 'activo',    label: '✅ Activos' },
+                { value: 'pendiente', label: '⏳ Pendientes' },
+                { value: 'mp',        label: '💳 MP' },
+                { value: 'manual',    label: '🖐 Manual' },
               ].map(f => (
                 <button
                   key={f.value}
@@ -677,7 +808,7 @@ export default function Admin() {
             </div>
           )}
 
-          {/* Contador de resultados */}
+          {/* Contador */}
           {!loadingPlayers && !errorPlayers && (
             <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
               Mostrando {filteredPlayers.length} de {players.length} jugadores
@@ -694,11 +825,7 @@ export default function Admin() {
               )}
 
               {filteredPlayers.map(player => (
-                <div
-                  key={player.id}
-                  className="card"
-                  style={{ padding: '0.85rem 1.1rem' }}
-                >
+                <div key={player.id} className="card" style={{ padding: '0.85rem 1.1rem' }}>
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -706,6 +833,7 @@ export default function Admin() {
                     flexWrap: 'wrap',
                     gap: '0.5rem'
                   }}>
+
                     {/* Info */}
                     <div style={{ flex: 1, minWidth: '200px' }}>
                       <div style={{
@@ -747,9 +875,9 @@ export default function Admin() {
                             background: 'var(--bg-secondary)',
                             color: 'var(--text-muted)'
                           }}>
-                            {player.payment_method === 'mp'     ? '💳 MercadoPago' :
-                             player.payment_method === 'manual' ? '🖐 Manual' :
-                             player.payment_method === 'transfer' ? '🏦 Transferencia' :
+                            {player.payment_method === 'mp'       ? '💳 MercadoPago'  :
+                             player.payment_method === 'manual'   ? '🖐 Manual'       :
+                             player.payment_method === 'transfer' ? '🏦 Transferencia':
                              player.payment_method}
                           </span>
                         )}
@@ -768,7 +896,7 @@ export default function Admin() {
                     {/* Acciones */}
                     {!player.is_superadmin && (
                       <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                        {/* Confirmar pago manual */}
+
                         {player.status !== 'activo' && (
                           <button
                             className="btn"
@@ -786,7 +914,6 @@ export default function Admin() {
                           </button>
                         )}
 
-                        {/* Promover/Demote admin (solo superadmin) */}
                         {isSuperAdmin && (
                           <button
                             className="btn"
@@ -803,7 +930,6 @@ export default function Admin() {
                           </button>
                         )}
 
-                        {/* Eliminar (solo superadmin) */}
                         {isSuperAdmin && (
                           <button
                             className="btn btn-danger"
