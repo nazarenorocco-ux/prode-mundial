@@ -26,21 +26,23 @@ function LoadingScreen() {
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
+  console.log('🛡️ PrivateRoute - loading:', loading, 'user:', user?.email ?? 'null')
   if (loading) return <LoadingScreen />
   return user ? children : <Navigate to="/login" replace />
 }
 
 function AdminRoute({ children }) {
   const { user, loading, isAdmin } = useAuth()
+  console.log('🛡️ AdminRoute - loading:', loading, 'user:', user?.email ?? 'null', 'isAdmin:', isAdmin)
   if (loading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
   if (!isAdmin) return <Navigate to="/" replace />
   return children
 }
 
-// PublicRoute: si ya está logueado lo manda al dashboard
 function PublicRoute({ children }) {
   const { user, loading } = useAuth()
+  console.log('🔓 PublicRoute - loading:', loading, 'user:', user?.email ?? 'null')
   if (loading) return <LoadingScreen />
   return user ? <Navigate to="/dashboard" replace /> : children
 }
@@ -83,7 +85,6 @@ function AppContent() {
           </AdminRoute>
         } />
 
-        {/* Callbacks MercadoPago — sin protección */}
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failure" element={<PaymentFailure />} />
         <Route path="/payment/pending" element={<PaymentPending />} />

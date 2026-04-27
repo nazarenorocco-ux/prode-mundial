@@ -83,10 +83,12 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔔 Auth event recibido:', event, 'hasSettled:', hasSettled.current, 'isMounted:', isMounted.current)
+
         if (!isMounted.current) return
         if (!hasSettled.current) return
 
-        console.log('🔔 Auth event:', event, session?.user?.email ?? 'sin sesión')
+        console.log('🔔 Auth event procesado:', event, session?.user?.email ?? 'sin sesión')
 
         if (session?.user) {
           setUser(session.user)
