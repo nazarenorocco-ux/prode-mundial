@@ -8,8 +8,9 @@ export function AuthProvider({ children }) {
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const isMounted  = useRef(true)
-  const hasSettled = useRef(false)
+  const isMounted     = useRef(true)
+  const hasSettled    = useRef(false)
+  const initFinished  = useRef(false)  // ← nuevo: saber si initAuth terminó
 
   const settle = () => {
     if (!hasSettled.current && isMounted.current) {
@@ -47,10 +48,11 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    isMounted.current  = true
-    hasSettled.current = false
+    isMounted.current    = true
+    hasSettled.current   = false
+    initFinished.current = false
 
-    // 1. Leer sesión existente al inicio (para reloads)
+    // 1. Leer sesión existente al inicio (para reloads y nuevas pestañas)
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -70,6 +72,7 @@ export function AuthProvider({ children }) {
           setIsAdmin(false)
         }
       } finally {
+        initFinished.current = true  // ← initAuth terminó
         settle()
       }
     }
@@ -80,14 +83,32 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted.current) return
-        if (!hasSettled.current) return // initAuth no terminó todavía, ignorar
+
+        // Si initAuth no terminó, esperarlo
+        if (!initFinished.current) {
+          const wait = () => new Promise(resolve => {
+            const check = setInterval(() => {
+              if (initFinished.current) {
+                clearInterval(check)
+                resolve()
+              }
+            }, 50)
+          })
+          await wait()
+        }
+
+        if (!isMounted.current) return
 
         console.log('🔔 Auth event:', event, session?.user?.email ?? 'sin sesión')
 
-        if (session?.user) {
-          setUser(session.user)
-          await fetchProfile(session.user.id)
-        } else {
+        // Solo procesar eventos relevantes, no el inicial que ya manejó initAuth
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session?.user) {
+            setUser(session.user)
+            await fetchProfile(session.user.id)
+            settle() // por si llegó antes que initAuth
+          }
+        } else if (event === 'SIGNED_OUT') {
           setUser(null)
           setIsAdmin(false)
         }
