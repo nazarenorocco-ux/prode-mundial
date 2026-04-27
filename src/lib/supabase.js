@@ -1,16 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-// Validación temprana — el error aparece en consola durante desarrollo
-// en lugar de un fallo críptico en runtime
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    '[supabase.js] Faltan variables de entorno: ' +
-    'VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY deben estar definidas en .env'
-  )
-}
+const supabaseUrl = 'https://qjjdzeixhwicijuathqx.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqamR6ZWl4aHdpY2lqdWF0aHF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNTIzMzUsImV4cCI6MjA5MjYyODMzNX0.iMGKa9hYnVvw1QcFpvMj3bft7fSnSRYcPRqU3W49WhQ'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
@@ -53,5 +44,6 @@ export function getFlagUrl(flagValue) {
 
   return null
 }
+
 // TEMPORAL para testing — borrar después
 window._sb = supabase
