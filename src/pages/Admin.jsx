@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, getFlagUrl } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
-import { formatearFecha } from '../utils/dateUtils'
+import { formatearFecha, formatearFechaLarga, estaLocked } from '../utils/dateUtils';
 
 // ─── Custom Hook: Jugadores ───────────────────────────────────────────────────
 function useAdminPlayers() {
@@ -176,7 +176,7 @@ function MatchRow({ match, editingMatch, homeScore, awayScore, savingResult,
         {/* Fecha + botón editar (cuando no está editando) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-            📅 {formatearFecha(match.match_date)}
+            📅 {formatearFechaLarga(match.match_date)}
           </div>
           {!isEditing && (
             <button
