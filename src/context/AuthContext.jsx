@@ -8,7 +8,16 @@ export function AuthProvider({ children }) {
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const isMounted = useRef(true)
+  const isMounted  = useRef(true)
+  const hasSettled = useRef(false)  // ← evita llamar setLoading(false) más de una vez
+
+  const settle = () => {
+    if (!hasSettled.current && isMounted.current) {
+      hasSettled.current = true
+      setLoading(false)
+      console.log('✅ loading=false')
+    }
+  }
 
   const fetchProfile = async (userId) => {
     try {
@@ -39,7 +48,8 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    isMounted.current = true
+    isMounted.current  = true
+    hasSettled.current = false
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -54,11 +64,8 @@ export function AuthProvider({ children }) {
           setIsAdmin(false)
         }
 
-        // INITIAL_SESSION siempre llega primero — usarlo para resolver loading
-        if (event === 'INITIAL_SESSION') {
-          console.log('✅ INITIAL_SESSION procesado — loading=false')
-          if (isMounted.current) setLoading(false)
-        }
+        // Resolver loading en el PRIMER evento que llegue (sea cual sea)
+        settle()
       }
     )
 
