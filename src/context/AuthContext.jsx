@@ -3,15 +3,19 @@ import { supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
 
-export function AuthProvider({ children }) {
-  const [user, setUser]             = useState(null)
-  const [isAdmin, setIsAdmin]       = useState(false)
-  const [loading, setLoading]       = useState(true)
-  const [signingOut, setSigningOut] = useState(false)
+// Doble seguridad: hardcodeado en el frontend Y verificado contra DB
+const SUPERADMIN_EMAIL = 'nazarenorocco@gmail.com'
 
-  const isMounted      = useRef(true)
-  const hasSettled     = useRef(false)
-  const isSigningOutRef = useRef(false)   // ref sincrónico para el listener
+export function AuthProvider({ children }) {
+  const [user, setUser]               = useState(null)
+  const [isAdmin, setIsAdmin]         = useState(false)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [loading, setLoading]         = useState(true)
+  const [signingOut, setSigningOut]   = useState(false)
+
+  const isMounted       = useRef(true)
+  const hasSettled      = useRef(false)
+  const isSigningOutRef = useRef(false)
 
   const settle = () => {
     if (!hasSettled.current && isMounted.current) {
@@ -20,28 +24,42 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const fetchProfile = useCallback(async (userId) => {
+  const fetchProfile = useCallback(async (userId, userEmail) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('is_admin')
+        .select('is_admin, is_superadmin')
         .eq('id', userId)
         .single()
+
       if (error) throw error
-      if (isMounted.current) setIsAdmin(data?.is_admin ?? false)
+
+      if (isMounted.current) {
+        const adminFromDb      = data?.is_admin      ?? false
+        const superAdminFromDb = data?.is_superadmin ?? false
+
+        // Triple check: DB + email hardcodeado + ambos deben coincidir
+        const superAdmin = superAdminFromDb && (userEmail === SUPERADMIN_EMAIL)
+
+        setIsAdmin(adminFromDb || superAdmin) // superadmin siempre es admin
+        setIsSuperAdmin(superAdmin)
+      }
     } catch {
-      if (isMounted.current) setIsAdmin(false)
+      if (isMounted.current) {
+        setIsAdmin(false)
+        setIsSuperAdmin(false)
+      }
     }
   }, [])
 
   const signOut = useCallback(async () => {
     if (!isMounted.current) return
 
-    // Marcar ANTES del await — ref sincrónico + estado React
     isSigningOutRef.current = true
     setSigningOut(true)
     setUser(null)
     setIsAdmin(false)
+    setIsSuperAdmin(false)
 
     try {
       await supabase.auth.signOut()
@@ -67,15 +85,17 @@ export function AuthProvider({ children }) {
 
         if (session?.user) {
           setUser(session.user)
-          await fetchProfile(session.user.id)
+          await fetchProfile(session.user.id, session.user.email)
         } else {
           setUser(null)
           setIsAdmin(false)
+          setIsSuperAdmin(false)
         }
       } catch {
         if (isMounted.current) {
           setUser(null)
           setIsAdmin(false)
+          setIsSuperAdmin(false)
         }
       } finally {
         settle()
@@ -89,21 +109,22 @@ export function AuthProvider({ children }) {
         if (!isMounted.current) return
         if (!hasSettled.current) return
 
-        // Si estamos en proceso de signOut, ignorar el evento SIGNED_OUT
         if (event === 'SIGNED_OUT') {
-          if (isSigningOutRef.current) return  // ya lo manejamos en signOut()
-          // SignOut externo (otra pestaña, token expirado, etc.)
+          if (isSigningOutRef.current) return
+          // SignOut externo (otra pestaña, token expirado)
           setUser(null)
           setIsAdmin(false)
+          setIsSuperAdmin(false)
           return
         }
 
         if (session?.user) {
           setUser(session.user)
-          await fetchProfile(session.user.id)
+          await fetchProfile(session.user.id, session.user.email)
         } else {
           setUser(null)
           setIsAdmin(false)
+          setIsSuperAdmin(false)
         }
       }
     )
@@ -115,7 +136,14 @@ export function AuthProvider({ children }) {
   }, [fetchProfile])
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, loading, signingOut, signOut }}>
+    <AuthContext.Provider value={{
+      user,
+      isAdmin,
+      isSuperAdmin,
+      loading,
+      signingOut,
+      signOut
+    }}>
       {children}
     </AuthContext.Provider>
   )
