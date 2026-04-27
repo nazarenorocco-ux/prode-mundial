@@ -15,6 +15,7 @@ export function AuthProvider({ children }) {
     if (!hasSettled.current && isMounted.current) {
       hasSettled.current = true
       setLoading(false)
+      console.log('✅ Auth settled')
     }
   }
 
@@ -34,14 +35,17 @@ export function AuthProvider({ children }) {
   }, [])
 
   const signOut = async () => {
+    console.log('🚪 signOut iniciado')
     try {
       await supabase.auth.signOut()
-    } catch {
-      // silencioso
+      console.log('✅ supabase.auth.signOut() completado')
+    } catch (e) {
+      console.error('❌ Error en signOut:', e)
     } finally {
       if (isMounted.current) {
         setUser(null)
         setIsAdmin(false)
+        console.log('🔴 User seteado a null')
       }
     }
   }
@@ -50,10 +54,10 @@ export function AuthProvider({ children }) {
     isMounted.current  = true
     hasSettled.current = false
 
-    // 1. Leer sesión existente al inicio (para reloads)
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
+        console.log('🔑 initAuth session:', session?.user?.email ?? 'sin sesión')
 
         if (!isMounted.current) return
 
@@ -64,7 +68,8 @@ export function AuthProvider({ children }) {
           setUser(null)
           setIsAdmin(false)
         }
-      } catch {
+      } catch (e) {
+        console.error('❌ initAuth error:', e)
         if (isMounted.current) {
           setUser(null)
           setIsAdmin(false)
@@ -76,11 +81,10 @@ export function AuthProvider({ children }) {
 
     initAuth()
 
-    // 2. Escuchar cambios futuros (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted.current) return
-        if (!hasSettled.current) return // initAuth no terminó todavía, ignorar
+        if (!hasSettled.current) return
 
         console.log('🔔 Auth event:', event, session?.user?.email ?? 'sin sesión')
 

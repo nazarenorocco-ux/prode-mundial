@@ -38,24 +38,17 @@ function AdminRoute({ children }) {
   return children
 }
 
+// PublicRoute: si ya está logueado lo manda al dashboard
 function PublicRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <LoadingScreen />
   return user ? <Navigate to="/dashboard" replace /> : children
 }
 
-function RegisterRoute({ children }) {
-  const { user, loading } = useAuth()
-  if (loading) return <LoadingScreen />
-  return user ? <Navigate to="/dashboard" replace /> : children
-}
-
 function AppContent() {
-  const { user } = useAuth()
-
   return (
     <>
-      {user && <Navbar />}
+      <Navbar />
       <Routes>
 
         <Route path="/" element={<Landing />} />
@@ -67,9 +60,9 @@ function AppContent() {
         } />
 
         <Route path="/register" element={
-          <RegisterRoute>
+          <PublicRoute>
             <Register />
-          </RegisterRoute>
+          </PublicRoute>
         } />
 
         <Route path="/dashboard" element={

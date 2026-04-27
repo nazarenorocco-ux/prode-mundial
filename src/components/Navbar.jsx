@@ -3,8 +3,8 @@ import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
   const { user, isAdmin, signOut } = useAuth()
-  const navigate  = useNavigate()
-  const location  = useLocation()
+  const navigate = useNavigate()
+  const location = useLocation()
 
   const handleSignOut = async () => {
     await signOut()
