@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase, getFlagUrl } from '../lib/supabase'
+import { supabase, getFlagUrl } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 
 export default function PredictionForm({ match, existingPrediction, onSaved }) {

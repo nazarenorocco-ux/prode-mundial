@@ -52,7 +52,7 @@ export const PRIZE_TIERS = [
 ];
 
 export const ENTRY_FEE = 40000;
-export const PRIZE_POOL_PERCENTAGE = 0.80;
+export const PRIZE_POOL_PERCENTAGE = 0.76;
 
 export function calculatePrizes(activePlayers) {
   const totalPool = activePlayers * ENTRY_FEE * PRIZE_POOL_PERCENTAGE;

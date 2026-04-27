@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../lib/supabaseClient'
 
 // Mapea códigos de error de Supabase a mensajes en español
 function getErrorMessage(error) {

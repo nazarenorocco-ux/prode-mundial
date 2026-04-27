@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { calculatePrizes, formatARS, PRIZE_TIERS, ENTRY_FEE, PRIZE_POOL_PERCENTAGE } from '../utils/prizeCalculator';
 import '../styles/Landing.css';
-import { supabase, getFlagUrl } from '../lib/supabase';
+import { supabase, getFlagUrl } from '../lib/supabaseclient';
 
 const MEDAL_ICONS = ['🥇', '🥈', '🥉'];
 const POSITION_LABELS = [

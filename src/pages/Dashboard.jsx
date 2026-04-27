@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import PredictionForm from '../components/PredictionForm'
 
