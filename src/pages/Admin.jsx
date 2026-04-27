@@ -1,6 +1,6 @@
 // src/pages/Admin.jsx
 import { useState, useEffect, useCallback } from 'react'
-import { supabase, getFlagUrl } from '../lib/supabaseClient'  // ✅ importar getFlagUrl
+import { supabase, getFlagUrl } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatearFecha } from '../utils/dateUtils'
 
@@ -88,15 +88,30 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
   )
 }
 
-// ─── Sub-componente: Fila de partido con banderas ─────────────────────────────
+// ─── Sub-componente: Card de partido ─────────────────────────────────────────
 function MatchRow({ match, editingMatch, homeScore, awayScore, savingResult,
                     savedMatchId, resultError, onEdit, onSave, onCancel,
                     onHomeScoreChange, onAwayScoreChange }) {
 
-  const isEditing = editingMatch?.id === match.id
+  const isEditing  = editingMatch?.id === match.id
+  const isFinished = match.status === 'finished'
+
+  // Borde izquierdo: verde si finalizado, amarillo si en edición, gris si pendiente
+  const borderColor = isFinished
+    ? '#4ade80'
+    : isEditing
+      ? 'var(--accent)'
+      : 'var(--border)'
 
   return (
-    <div className="card" style={{ padding: '1rem 1.25rem' }}>
+    <div style={{
+      background: 'var(--card-bg)',
+      border: '1px solid var(--border)',
+      borderLeft: `4px solid ${borderColor}`,
+      borderRadius: '10px',
+      padding: '1rem 1.25rem',
+      transition: 'border-left-color 0.2s ease'
+    }}>
 
       {/* ── Cabecera: equipos + fecha ── */}
       <div style={{
@@ -105,7 +120,7 @@ function MatchRow({ match, editingMatch, homeScore, awayScore, savingResult,
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '0.5rem',
-        marginBottom: '0.6rem'
+        marginBottom: isFinished || isEditing ? '0.75rem' : '0'
       }}>
 
         {/* Equipos con banderas */}
@@ -158,52 +173,72 @@ function MatchRow({ match, editingMatch, homeScore, awayScore, savingResult,
           )}
         </div>
 
-        {/* Fecha */}
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-          📅 {formatearFecha(match.match_date)}
+        {/* Fecha + botón editar (cuando no está editando) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            📅 {formatearFecha(match.match_date)}
+          </div>
+          {!isEditing && (
+            <button
+              className="btn"
+              onClick={() => onEdit(match)}
+              style={{
+                fontSize: '0.78rem',
+                padding: '0.25rem 0.6rem',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-secondary)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {isFinished ? '✏️ Editar' : '➕ Cargar'}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ── Resultado actual (si está finalizado) ── */}
-      {match.status === 'finished' && (
+      {/* ── Resultado actual (si está finalizado y no editando) ── */}
+      {isFinished && !isEditing && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
           fontSize: '0.9rem',
-          color: 'var(--text-muted)',
-          marginBottom: '0.6rem',
           flexWrap: 'wrap'
         }}>
-          <span>Resultado:</span>
 
-          {/* Bandera local mini */}
-          {match.home_flag && (
-            <img
-              src={getFlagUrl(match.home_flag)}
-              alt={match.home_team}
-              style={{ width: '18px', height: '13px', objectFit: 'cover', borderRadius: '2px' }}
-            />
-          )}
-
-          <strong style={{ color: 'var(--text-primary)', fontSize: '1rem' }}>
-            {match.home_score} - {match.away_score}
-          </strong>
-
-          {/* Bandera visitante mini */}
-          {match.away_flag && (
-            <img
-              src={getFlagUrl(match.away_flag)}
-              alt={match.away_team}
-              style={{ width: '18px', height: '13px', objectFit: 'cover', borderRadius: '2px' }}
-            />
-          )}
+          {/* Marcador con banderas */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            background: 'var(--bg-secondary)',
+            padding: '0.3rem 0.75rem',
+            borderRadius: '8px',
+          }}>
+            {match.home_flag && (
+              <img
+                src={getFlagUrl(match.home_flag)}
+                alt={match.home_team}
+                style={{ width: '18px', height: '13px', objectFit: 'cover', borderRadius: '2px' }}
+              />
+            )}
+            <strong style={{ color: 'var(--text-primary)', fontSize: '1.1rem', letterSpacing: '0.05em' }}>
+              {match.home_score} - {match.away_score}
+            </strong>
+            {match.away_flag && (
+              <img
+                src={getFlagUrl(match.away_flag)}
+                alt={match.away_team}
+                style={{ width: '18px', height: '13px', objectFit: 'cover', borderRadius: '2px' }}
+              />
+            )}
+          </div>
 
           <span style={{
             fontSize: '0.72rem',
             background: '#166534',
             color: '#4ade80',
-            padding: '0.1rem 0.4rem',
+            padding: '0.2rem 0.5rem',
             borderRadius: '4px',
             fontWeight: '600'
           }}>
@@ -215,97 +250,106 @@ function MatchRow({ match, editingMatch, homeScore, awayScore, savingResult,
               fontSize: '0.72rem',
               background: 'var(--accent)',
               color: '#fff',
-              padding: '0.1rem 0.5rem',
+              padding: '0.2rem 0.5rem',
               borderRadius: '4px',
-              fontWeight: '600'
+              fontWeight: '600',
+              animation: 'fadeIn 0.2s ease'
             }}>
-              ✓ Guardado
+              ✓ Guardado y puntos calculados
             </span>
           )}
         </div>
       )}
 
-      {/* ── Editor de resultado / Botón cargar ── */}
-      {isEditing ? (
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+      {/* ── Editor de resultado ── */}
+      {isEditing && (
+        <div>
+          <div style={{
+            display: 'flex',
+            gap: '0.5rem',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            marginBottom: resultError ? '0.5rem' : '0'
+          }}>
 
-          {/* Input local con bandera */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            {match.home_flag && (
-              <img
-                src={getFlagUrl(match.home_flag)}
-                alt={match.home_team}
-                style={{ width: '20px', height: '14px', objectFit: 'cover', borderRadius: '2px' }}
+            {/* Input local con bandera */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              {match.home_flag && (
+                <img
+                  src={getFlagUrl(match.home_flag)}
+                  alt={match.home_team}
+                  style={{ width: '20px', height: '14px', objectFit: 'cover', borderRadius: '2px' }}
+                />
+              )}
+              <input
+                type="number" min="0" max="20"
+                value={homeScore}
+                onChange={e => onHomeScoreChange(e.target.value)}
+                placeholder="0"
+                style={{
+                  width: '60px', padding: '0.4rem',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  textAlign: 'center',
+                  fontSize: '1rem',
+                  fontWeight: '700'
+                }}
               />
-            )}
-            <input
-              type="number" min="0" max="20"
-              value={homeScore}
-              onChange={e => onHomeScoreChange(e.target.value)}
-              placeholder="0"
-              style={{
-                width: '60px', padding: '0.4rem',
-                borderRadius: '6px',
-                border: '1px solid var(--border)',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
-                textAlign: 'center',
-                fontSize: '1rem',
-                fontWeight: '700'
-              }}
-            />
-          </div>
+            </div>
 
-          <span style={{ color: 'var(--text-muted)', fontWeight: '700', fontSize: '1.1rem' }}>
-            -
-          </span>
+            <span style={{ color: 'var(--text-muted)', fontWeight: '700', fontSize: '1.1rem' }}>
+              -
+            </span>
 
-          {/* Input visitante con bandera */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <input
-              type="number" min="0" max="20"
-              value={awayScore}
-              onChange={e => onAwayScoreChange(e.target.value)}
-              placeholder="0"
-              style={{
-                width: '60px', padding: '0.4rem',
-                borderRadius: '6px',
-                border: '1px solid var(--border)',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
-                textAlign: 'center',
-                fontSize: '1rem',
-                fontWeight: '700'
-              }}
-            />
-            {match.away_flag && (
-              <img
-                src={getFlagUrl(match.away_flag)}
-                alt={match.away_team}
-                style={{ width: '20px', height: '14px', objectFit: 'cover', borderRadius: '2px' }}
+            {/* Input visitante con bandera */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <input
+                type="number" min="0" max="20"
+                value={awayScore}
+                onChange={e => onAwayScoreChange(e.target.value)}
+                placeholder="0"
+                style={{
+                  width: '60px', padding: '0.4rem',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  textAlign: 'center',
+                  fontSize: '1rem',
+                  fontWeight: '700'
+                }}
               />
-            )}
-          </div>
+              {match.away_flag && (
+                <img
+                  src={getFlagUrl(match.away_flag)}
+                  alt={match.away_team}
+                  style={{ width: '20px', height: '14px', objectFit: 'cover', borderRadius: '2px' }}
+                />
+              )}
+            </div>
 
-          {/* Botones */}
-          <button
-            className="btn btn-primary"
-            onClick={() => onSave(match)}
-            disabled={savingResult}
-            style={{ fontSize: '0.85rem', padding: '0.4rem 0.9rem' }}
-          >
-            {savingResult ? '⏳ Guardando...' : '✓ Guardar'}
-          </button>
-          <button
-            className="btn"
-            onClick={onCancel}
-            style={{
-              fontSize: '0.85rem', padding: '0.4rem 0.9rem',
-              background: 'var(--bg-secondary)'
-            }}
-          >
-            Cancelar
-          </button>
+            {/* Botones */}
+            <button
+              className="btn btn-primary"
+              onClick={() => onSave(match)}
+              disabled={savingResult}
+              style={{ fontSize: '0.85rem', padding: '0.4rem 0.9rem' }}
+            >
+              {savingResult ? '⏳ Guardando...' : '✓ Guardar'}
+            </button>
+            <button
+              className="btn"
+              onClick={onCancel}
+              style={{
+                fontSize: '0.85rem', padding: '0.4rem 0.9rem',
+                background: 'var(--bg-secondary)'
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
 
           {resultError && (
             <span style={{ fontSize: '0.82rem', color: 'var(--error)', fontWeight: '600' }}>
@@ -313,19 +357,6 @@ function MatchRow({ match, editingMatch, homeScore, awayScore, savingResult,
             </span>
           )}
         </div>
-      ) : (
-        <button
-          className="btn"
-          onClick={() => onEdit(match)}
-          style={{
-            fontSize: '0.82rem',
-            padding: '0.3rem 0.75rem',
-            background: 'var(--bg-secondary)',
-            color: 'var(--text-secondary)'
-          }}
-        >
-          {match.status === 'finished' ? '✏️ Editar resultado' : '➕ Cargar resultado'}
-        </button>
       )}
     </div>
   )
@@ -354,7 +385,6 @@ export default function Admin() {
   const [savingResult, setSavingResult]     = useState(false)
   const [savedMatchId, setSavedMatchId]     = useState(null)
   const [resultError, setResultError]       = useState('')
-  const [calculatingPts, setCalculatingPts] = useState(false)
   const [calcMessage, setCalcMessage]       = useState('')
   const [matchFilter, setMatchFilter]       = useState('all')
 
@@ -395,45 +425,53 @@ export default function Admin() {
     setTogglingStatus(false)
   }
 
-  // ── Guardar resultado ────────────────────────────────────────────────────────
+  // ── Guardar resultado + calcular puntos automático ───────────────────────────
   const handleSaveResult = async (match) => {
     setResultError('')
+    setCalcMessage('')
+
     const h = parseInt(homeScore)
     const a = parseInt(awayScore)
+
     if (isNaN(h) || isNaN(a) || h < 0 || a < 0 || h > 20 || a > 20) {
       setResultError('Scores inválidos (0–20)')
       return
     }
+
     setSavingResult(true)
-    const { error } = await supabase
+
+    // 1. Guardar resultado y marcar como finalizado
+    const { error: saveError } = await supabase
       .from('matches')
       .update({ home_score: h, away_score: a, status: 'finished' })
       .eq('id', match.id)
 
-    setSavingResult(false)
-    if (error) { setResultError(error.message); return }
+    if (saveError) {
+      setSavingResult(false)
+      setResultError(saveError.message)
+      return
+    }
 
+    // 2. Calcular puntos automáticamente
+    const { error: calcError } = await supabase.rpc('calculate_points')
+
+    setSavingResult(false)
+
+    if (calcError) {
+      // El resultado se guardó OK, solo falló el cálculo
+      setCalcMessage(`⚠️ Resultado guardado, pero error al calcular puntos: ${calcError.message}`)
+      setTimeout(() => setCalcMessage(''), 5000)
+    }
+
+    // 3. Feedback visual
     setSavedMatchId(match.id)
-    setTimeout(() => setSavedMatchId(null), 2500)
+    setTimeout(() => setSavedMatchId(null), 3000)
+
+    // 4. Limpiar estado
     setEditingMatch(null)
     setHomeScore('')
     setAwayScore('')
     refetchMatches()
-  }
-
-  // ── Calcular puntos ──────────────────────────────────────────────────────────
-  const handleCalculatePoints = async () => {
-    if (calculatingPts) return
-    setCalculatingPts(true)
-    setCalcMessage('')
-    const { error } = await supabase.rpc('calculate_points')
-    setCalculatingPts(false)
-    setCalcMessage(
-      error
-        ? `❌ Error: ${error.message}`
-        : '✅ Puntos calculados correctamente'
-    )
-    setTimeout(() => setCalcMessage(''), 4000)
   }
 
   // ── Confirmar pago manual ────────────────────────────────────────────────────
@@ -596,45 +634,21 @@ export default function Admin() {
       {activeTab === 'results' && (
         <div>
 
-          {/* Calcular Puntos */}
-          <div style={{
-            background: 'var(--card-bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '10px',
-            padding: '1rem 1.5rem',
-            marginBottom: '1.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '0.75rem'
-          }}>
-            <div>
-              <div style={{ fontWeight: '600', marginBottom: '0.2rem' }}>
-                🧮 Calcular Puntos
-              </div>
-              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                Ejecuta el cálculo de puntos para todos los partidos finalizados
-              </div>
-              {calcMessage && (
-                <div style={{
-                  marginTop: '0.4rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
-                  color: calcMessage.startsWith('✅') ? 'var(--success)' : 'var(--error)'
-                }}>
-                  {calcMessage}
-                </div>
-              )}
+          {/* Mensaje de cálculo (solo si hubo error en el cálculo) */}
+          {calcMessage && (
+            <div style={{
+              background: 'var(--card-bg)',
+              border: '1px solid var(--error)',
+              borderRadius: '8px',
+              padding: '0.75rem 1rem',
+              marginBottom: '1rem',
+              fontSize: '0.85rem',
+              color: 'var(--error)',
+              fontWeight: '600'
+            }}>
+              {calcMessage}
             </div>
-            <button
-              className="btn btn-primary"
-              onClick={handleCalculatePoints}
-              disabled={calculatingPts}
-            >
-              {calculatingPts ? '⏳ Calculando...' : '🚀 Calcular Puntos'}
-            </button>
-          </div>
+          )}
 
           {/* Filtros */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
@@ -660,6 +674,25 @@ export default function Admin() {
             ))}
           </div>
 
+          {/* Contador de partidos */}
+          {!loadingMatches && !errorMatches && (
+            <div style={{
+              fontSize: '0.82rem',
+              color: 'var(--text-muted)',
+              marginBottom: '0.75rem'
+            }}>
+              Mostrando {filteredMatches.length} de {matches.length} partidos
+              {' · '}
+              <span style={{ color: '#4ade80' }}>
+                {matches.filter(m => m.status === 'finished').length} finalizados
+              </span>
+              {' · '}
+              <span style={{ color: '#facc15' }}>
+                {matches.filter(m => m.status !== 'finished').length} pendientes
+              </span>
+            </div>
+          )}
+
           {/* Error / Loading */}
           {errorMatches && (
             <div className="card" style={{ color: 'var(--error)', textAlign: 'center', padding: '2rem' }}>
@@ -677,9 +710,9 @@ export default function Admin() {
             </div>
           )}
 
-          {/* ✅ Lista de partidos con MatchRow */}
+          {/* Lista de partidos */}
           {!loadingMatches && !errorMatches && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {filteredMatches.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                   No hay partidos con ese filtro
