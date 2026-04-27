@@ -33,15 +33,12 @@ function AdminRoute({ children }) {
   return children
 }
 
-// Redirige a /dashboard si ya hay sesión activa
 function PublicRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <LoadingScreen />
   return user ? <Navigate to="/dashboard" /> : children
 }
 
-// Igual que PublicRoute: si ya hay sesión al entrar, redirigir
-// Register.jsx maneja su propio flujo una vez que el usuario se crea
 function RegisterRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <LoadingScreen />
@@ -53,24 +50,52 @@ function AppContent() {
 
   return (
     <>
-      {/* Navbar solo visible para usuarios autenticados */}
       {user && <Navbar />}
       <Routes>
-        <Route path="/" element={<Landing />} />
 
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/register" element={<RegisterRoute><Register /></RegisterRoute>} />
+        <Route path="/" element={
+          <PublicRoute>
+            <Landing />
+          </PublicRoute>
+        } />
 
-        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
-        <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+        <Route path="/login" element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } />
 
-        {/* Rutas públicas: callbacks de MercadoPago, no requieren sesión */}
+        <Route path="/register" element={
+          <RegisterRoute>
+            <Register />
+          </RegisterRoute>
+        } />
+
+        <Route path="/dashboard" element={
+          <PrivateRoute>
+            <Dashboard />
+          </PrivateRoute>
+        } />
+
+        <Route path="/leaderboard" element={
+          <PrivateRoute>
+            <Leaderboard />
+          </PrivateRoute>
+        } />
+
+        <Route path="/admin" element={
+          <AdminRoute>
+            <Admin />
+          </AdminRoute>
+        } />
+
+        {/* Callbacks MercadoPago — sin protección */}
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failure" element={<PaymentFailure />} />
         <Route path="/payment/pending" element={<PaymentPending />} />
 
         <Route path="*" element={<Navigate to="/" />} />
+
       </Routes>
     </>
   )
