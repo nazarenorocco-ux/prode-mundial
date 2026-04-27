@@ -8,22 +8,32 @@ export default function ResetPassword() {
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
   const [success, setSuccess]     = useState(false)
+  const [ready, setReady]         = useState(false)
   const navigate = useNavigate()
 
-  // Supabase manda el token en el hash de la URL
-  // detectSessionFromUrl: true en supabaseClient lo procesa automáticamente
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        // Sesión lista, el usuario puede cambiar su contraseña
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        setReady(true)
       }
     })
+
+    // También verificar si ya hay sesión activa
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true)
+    })
+
     return () => subscription.unsubscribe()
   }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+
+    if (!ready) {
+      setError('El link expiró. Solicitá uno nuevo.')
+      return
+    }
 
     if (password.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres.')
@@ -72,6 +82,12 @@ export default function ResetPassword() {
         <h1 className="auth-title">🔒 Nueva contraseña</h1>
         <p className="auth-subtitle">Elegí una contraseña nueva</p>
 
+        {!ready && (
+          <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+            Verificando link...
+          </div>
+        )}
+
         {error && <div className="auth-error">{error}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -100,7 +116,7 @@ export default function ResetPassword() {
           <button
             type="submit"
             className="btn btn-primary btn-full"
-            disabled={loading}
+            disabled={loading || !ready}
           >
             {loading ? 'Guardando...' : 'Guardar contraseña'}
           </button>
