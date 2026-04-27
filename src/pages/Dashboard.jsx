@@ -5,14 +5,16 @@ import PredictionForm from '../components/PredictionForm'
 
 export default function Dashboard() {
   const { user } = useAuth()
-  const [matches, setMatches]       = useState([])
+  const [matches, setMatches]         = useState([])
   const [predictions, setPredictions] = useState({})
-  const [loading, setLoading]       = useState(true)
-  const [error, setError]           = useState(null)
+  const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState(null)
   const [activeGroup, setActiveGroup] = useState(null)
-  const [userStatus, setUserStatus] = useState(null)
+  const [userStatus, setUserStatus]   = useState(null)
 
   const fetchData = useCallback(async () => {
+    if (!user?.id) return
+
     try {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -55,28 +57,30 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }, [user.id])
+  }, [user?.id])
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    if (user?.id) {
+      fetchData()
+    } else {
+      setLoading(false)
+    }
+  }, [fetchData, user?.id])
 
-  // ── Cálculo de puntos acumulados ──────────────────────────────────────
+  // ── Cálculo de puntos ─────────────────────────────────────────────────
   const finishedMatches = matches.filter(m => m.status === 'finished')
 
   const totalPoints = finishedMatches.reduce(
     (sum, m) => sum + (predictions[m.id]?.points ?? 0),
     0
   )
-  const exactCount  = finishedMatches.filter(
+  const exactCount = finishedMatches.filter(
     m => predictions[m.id]?.points === 3
   ).length
   const resultCount = finishedMatches.filter(
     m => predictions[m.id]?.points === 1
   ).length
-  // Solo cuentan como "fallados" los partidos donde el usuario
-  // cargó predicción y salió 0 puntos (no los que no predijo)
-  const missCount   = finishedMatches.filter(
+  const missCount = finishedMatches.filter(
     m => predictions[m.id] != null && predictions[m.id].points === 0
   ).length
   const playedCount = finishedMatches.length
@@ -91,7 +95,7 @@ export default function Dashboard() {
 
   const groups = Object.keys(groupedMatches).sort()
 
-  // ── Estados de carga y error ──────────────────────────────────────────
+  // ── Loading / Error ───────────────────────────────────────────────────
   if (loading) return (
     <div className="main-container">
       <p className="loading-text">Cargando partidos...</p>
@@ -134,7 +138,7 @@ export default function Dashboard() {
         <p>Ingresá el resultado que creés que va a salir en cada partido</p>
       </div>
 
-      {/* ── Banner de puntos (solo si hay partidos jugados) ── */}
+      {/* ── Banner de puntos ── */}
       {finishedMatches.length > 0 && (
         <div className="points-summary-banner">
           <div className="points-summary-main">
@@ -177,7 +181,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* ── Empty state si no hay partidos ── */}
+      {/* ── Empty state ── */}
       {matches.length === 0 && (
         <div className="empty-state">
           <p>⚽ Aún no hay partidos cargados</p>

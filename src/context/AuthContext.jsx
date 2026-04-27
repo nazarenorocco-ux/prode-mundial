@@ -15,7 +15,6 @@ export function AuthProvider({ children }) {
     if (!hasSettled.current && isMounted.current) {
       hasSettled.current = true
       setLoading(false)
-      console.log('✅ loading=false')
     }
   }
 
@@ -53,17 +52,17 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔔 onAuthStateChange:', event, session?.user?.email)
+        console.log('🔔 Auth event:', event, session?.user?.email ?? 'sin sesión')
         if (!isMounted.current) return
 
         if (session?.user) {
           setUser(session.user)
-          settle()                           // ← desbloquea loading YA
-          await fetchProfile(session.user.id) // ← isAdmin llega después, no bloquea
+          settle()
+          await fetchProfile(session.user.id)
         } else {
           setUser(null)
           setIsAdmin(false)
-          settle()                           // ← también desbloquea si no hay sesión
+          settle()
         }
       }
     )
