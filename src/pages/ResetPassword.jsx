@@ -18,7 +18,6 @@ export default function ResetPassword() {
       }
     })
 
-    // También verificar si ya hay sesión activa
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setReady(true)
     })
@@ -52,12 +51,22 @@ export default function ResetPassword() {
     setLoading(false)
 
     if (updateError) {
+      // Supabase devuelve este mensaje cuando la contraseña es igual a la anterior
+      if (
+        updateError.message?.toLowerCase().includes('same password') ||
+        updateError.message?.toLowerCase().includes('different password') ||
+        updateError.code === 'same_password'
+      ) {
+        setError('La nueva contraseña debe ser diferente a la anterior.')
+        return
+      }
       setError('No se pudo actualizar la contraseña. El link puede haber expirado.')
       return
     }
 
+    await supabase.auth.signOut()
     setSuccess(true)
-    setTimeout(() => navigate('/dashboard', { replace: true }), 3000)
+    setTimeout(() => navigate('/login', { replace: true }), 3000)
   }
 
   if (success) {
@@ -69,7 +78,7 @@ export default function ResetPassword() {
             Tu contraseña fue actualizada correctamente.
           </p>
           <p style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '1rem' }}>
-            Redirigiendo al dashboard en 3 segundos...
+            Redirigiendo al login en 3 segundos...
           </p>
         </div>
       </div>
