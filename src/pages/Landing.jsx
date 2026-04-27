@@ -1,8 +1,10 @@
+// src/pages/Landing.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { calculatePrizes, formatARS, PRIZE_TIERS, ENTRY_FEE, PRIZE_POOL_PERCENTAGE } from '../utils/prizeCalculator';
 import '../styles/Landing.css';
 import { supabase, getFlagUrl } from '../lib/supabaseClient';
+import { formatearFechaLarga } from '../utils/dateUtils'; // ✅ importamos util centralizada
 
 const MEDAL_ICONS = ['🥇', '🥈', '🥉'];
 const POSITION_LABELS = [
@@ -14,41 +16,28 @@ const POSITION_LABELS = [
 
 function getNextTierInfo(activePlayers) {
   const currentTierIndex = PRIZE_TIERS.findIndex(t => activePlayers <= t.maxPlayers);
-  const currentTier = PRIZE_TIERS[currentTierIndex];
-  const nextTier    = PRIZE_TIERS[currentTierIndex + 1];
+  const currentTier      = PRIZE_TIERS[currentTierIndex];
+  const nextTier         = PRIZE_TIERS[currentTierIndex + 1];
   if (!nextTier) return null;
 
-  const playersNeeded  = currentTier.maxPlayers - activePlayers + 1;
-  const nextPool       = (currentTier.maxPlayers + 1) * ENTRY_FEE * PRIZE_POOL_PERCENTAGE;
+  const playersNeeded   = currentTier.maxPlayers - activePlayers + 1;
+  const nextPool        = (currentTier.maxPlayers + 1) * ENTRY_FEE * PRIZE_POOL_PERCENTAGE;
 
   return {
     playersNeeded,
-    nextPrizes: nextTier.prizes,
-    nextFirstPrize: Math.round(nextPool * nextTier.percentages[0])
+    nextPrizes:      nextTier.prizes,
+    nextFirstPrize:  Math.round(nextPool * nextTier.percentages[0])
   };
 }
 
-function formatMatchDate(dateStr) {
-  if (!dateStr) return null;
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return null;
-  return date.toLocaleString('es-AR', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-}
+// ✅ ELIMINADO: formatMatchDate local reemplazado por formatearFechaLarga de dateUtils
 
 export default function Landing() {
   const navigate = useNavigate();
-  const [activePlayers, setActivePlayers]   = useState(0);
-  const [displayCount, setDisplayCount]     = useState(0);
+  const [activePlayers, setActivePlayers]     = useState(0);
+  const [displayCount, setDisplayCount]       = useState(0);
   const [upcomingMatches, setUpcomingMatches] = useState([]);
-  const [loading, setLoading]               = useState(true);
+  const [loading, setLoading]                 = useState(true);
 
   useEffect(() => {
     async function fetchData() {
@@ -77,10 +66,10 @@ export default function Landing() {
   useEffect(() => {
     if (activePlayers === 0) { setDisplayCount(0); return; }
 
-    let current      = 0;
-    const steps      = 60;
-    const increment  = activePlayers / steps;
-    const interval   = 1500 / steps;
+    let current     = 0;
+    const steps     = 60;
+    const increment = activePlayers / steps;
+    const interval  = 1500 / steps;
 
     const timer = setInterval(() => {
       current += increment;
@@ -95,9 +84,9 @@ export default function Landing() {
     return () => clearInterval(timer);
   }, [activePlayers]);
 
-  const playerCount         = Math.max(activePlayers, 1);
-  const { totalPool, prizes } = calculatePrizes(playerCount);
-  const nextTierInfo        = getNextTierInfo(playerCount);
+  const playerCount             = Math.max(activePlayers, 1);
+  const { totalPool, prizes }   = calculatePrizes(playerCount);
+  const nextTierInfo            = getNextTierInfo(playerCount);
 
   return (
     <div className="landing">
@@ -240,8 +229,9 @@ export default function Landing() {
                 </div>
                 <div className="match-info">
                   <span className="match-group">{match.group_name}</span>
+                  {/* ✅ formatearFechaLarga reemplaza a formatMatchDate */}
                   <span className="match-date">
-                    {formatMatchDate(match.match_date) ?? 'Fecha por confirmar'}
+                    {formatearFechaLarga(match.match_date) ?? 'Fecha por confirmar'}
                   </span>
                 </div>
               </div>

@@ -1,8 +1,10 @@
+// src/components/PredictionForm.jsx
 import { useState } from 'react'
 import { supabase, getFlagUrl } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
+import { formatearFecha, estaLocked } from '../utils/dateUtils'
 
-export default function PredictionForm({ match, existingPrediction, onSaved }) {
+export default function PredictionForm({ match, existingPrediction, onSaved, forceDisabled = false }) {
   const { user } = useAuth()
   const [homeScore, setHomeScore] = useState(
     existingPrediction?.home_score ?? ''
@@ -16,32 +18,14 @@ export default function PredictionForm({ match, existingPrediction, onSaved }) {
 
   const finished = match.status === 'finished'
 
-  // Minutos hasta el partido — negativo si ya empezó
+  const locked = forceDisabled || estaLocked(match.match_date) || finished
+
   const minutesUntilMatch =
     (new Date(match.match_date) - new Date()) / (1000 * 60)
-  const locked = minutesUntilMatch <= 30 || finished
-
-  const formatDate = (dateStr) => {
-  if (!dateStr) return 'Fecha por confirmar'
-  const date = new Date(dateStr)
-  if (isNaN(date.getTime())) return 'Fecha por confirmar'
-
-  const opciones = {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    weekday: 'short',   // lun, mar, jue...
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false        // ← fuerza formato 24hs
-  }
-
-  return date.toLocaleString('es-AR', opciones)
-  // Resultado: "jue, 11/06, 16:00"
-}
 
   const getLockMessage = () => {
     if (finished) return null
+    if (forceDisabled) return '🔒 Prode cerrado'
     if (minutesUntilMatch <= 0) return '🔒 Partido en curso'
     if (minutesUntilMatch <= 30)
       return `🔒 Cierra en ${Math.round(minutesUntilMatch)} min`
@@ -53,7 +37,6 @@ export default function PredictionForm({ match, existingPrediction, onSaved }) {
 
     const pts = existingPrediction.points
 
-    // pts null/undefined = aún no calculados
     if (pts == null)
       return { label: '⏳ Puntos pendientes', className: 'points-pending' }
     if (pts === 3)
@@ -111,8 +94,8 @@ export default function PredictionForm({ match, existingPrediction, onSaved }) {
     onSaved()
   }
 
-  const lockMessage    = getLockMessage()
-  const pointsDisplay  = getPointsDisplay()
+  const lockMessage   = getLockMessage()
+  const pointsDisplay = getPointsDisplay()
 
   return (
     <div
@@ -168,7 +151,7 @@ export default function PredictionForm({ match, existingPrediction, onSaved }) {
           marginBottom: '0.8rem'
         }}
       >
-        📅 {formatDate(match.match_date)}
+        📅 {formatearFecha(match.match_date)}
       </div>
 
       {/* ── Error de validación ── */}
@@ -268,7 +251,8 @@ export default function PredictionForm({ match, existingPrediction, onSaved }) {
             </button>
           )}
 
-          {locked && existingPrediction && (
+          {/* Partido bloqueado, no finalizado, CON pronóstico */}
+          {locked && !finished && existingPrediction && (
             <div
               style={{
                 fontSize: '0.9rem',
@@ -278,6 +262,19 @@ export default function PredictionForm({ match, existingPrediction, onSaved }) {
             >
               Tu pronóstico:{' '}
               {existingPrediction.home_score} - {existingPrediction.away_score}
+            </div>
+          )}
+
+          {/* ✅ MEJORA: Partido bloqueado, no finalizado, SIN pronóstico */}
+          {locked && !finished && !existingPrediction && (
+            <div
+              style={{
+                fontSize: '0.85rem',
+                color: 'var(--text-muted)',
+                fontStyle: 'italic'
+              }}
+            >
+              Sin pronóstico cargado
             </div>
           )}
         </div>

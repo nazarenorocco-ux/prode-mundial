@@ -1,3 +1,4 @@
+// src/pages/Dashboard.jsx
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
@@ -11,34 +12,32 @@ export default function Dashboard() {
   const [error, setError]             = useState(null)
   const [activeGroup, setActiveGroup] = useState(null)
   const [userStatus, setUserStatus]   = useState(null)
+  const [prodeStatus, setProdeStatus] = useState('open') // ✅ nuevo estado
 
   const fetchData = useCallback(async () => {
     if (!user?.id) return
 
     try {
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('status')
-        .eq('id', user.id)
-        .single()
+      // ✅ Traemos perfil + prode_status en paralelo
+      const [
+        { data: profile,      error: profileError },
+        { data: settingsData, error: settingsError },
+        { data: matchesData,  error: matchesError },
+        { data: predictionsData, error: predsError }
+      ] = await Promise.all([
+        supabase.from('profiles').select('status').eq('id', user.id).single(),
+        supabase.from('settings').select('value').eq('key', 'prode_status').single(),
+        supabase.from('matches').select('*').order('match_date', { ascending: true }),
+        supabase.from('predictions').select('*').eq('user_id', user.id)
+      ])
 
       if (profileError) throw profileError
+      if (matchesError) throw matchesError
+      if (predsError)   throw predsError
+      // settingsError no es fatal — si falla, usamos 'open' por defecto
 
       setUserStatus(profile?.status || 'pendiente')
-
-      const { data: matchesData, error: matchesError } = await supabase
-        .from('matches')
-        .select('*')
-        .order('match_date', { ascending: true })
-
-      if (matchesError) throw matchesError
-
-      const { data: predictionsData, error: predsError } = await supabase
-        .from('predictions')
-        .select('*')
-        .eq('user_id', user.id)
-
-      if (predsError) throw predsError
+      setProdeStatus(settingsData?.value || 'open') // ✅ guardamos el estado global
 
       const predsMap = {}
       predictionsData?.forEach(p => {
@@ -138,6 +137,20 @@ export default function Dashboard() {
         <p>Ingresá el resultado que creés que va a salir en cada partido</p>
       </div>
 
+      {/* ✅ Banner prode cerrado */}
+      {prodeStatus === 'closed' && (
+        <div className="match-card" style={{
+          background: 'rgba(239,68,68,0.1)',
+          border: '1px solid var(--error)',
+          textAlign: 'center',
+          marginBottom: '1.5rem'
+        }}>
+          <p style={{ color: 'var(--error)', fontWeight: '700', fontSize: '1rem', margin: 0 }}>
+            🔒 El prode está cerrado temporalmente. No se pueden cargar predicciones.
+          </p>
+        </div>
+      )}
+
       {/* ── Banner de puntos ── */}
       {finishedMatches.length > 0 && (
         <div className="points-summary-banner">
@@ -177,6 +190,8 @@ export default function Dashboard() {
             match={match}
             existingPrediction={predictions[match.id]}
             onSaved={fetchData}
+            // ✅ si el prode está cerrado, forzamos lock en todos los partidos
+            forceDisabled={prodeStatus === 'closed'}
           />
         ))}
       </div>
