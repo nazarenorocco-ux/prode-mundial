@@ -13,7 +13,12 @@ import PaymentPending from './pages/PaymentPending'
 
 function LoadingScreen() {
   return (
-    <div className="main-container">
+    <div className="main-container" style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      minHeight: '100vh' 
+    }}>
       <p style={{ color: 'var(--text-muted)' }}>Cargando...</p>
     </div>
   )
@@ -22,27 +27,27 @@ function LoadingScreen() {
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <LoadingScreen />
-  return user ? children : <Navigate to="/login" />
+  return user ? children : <Navigate to="/login" replace />
 }
 
 function AdminRoute({ children }) {
   const { user, loading, isAdmin } = useAuth()
   if (loading) return <LoadingScreen />
-  if (!user) return <Navigate to="/login" />
-  if (!isAdmin) return <Navigate to="/" />
+  if (!user) return <Navigate to="/login" replace />
+  if (!isAdmin) return <Navigate to="/" replace />
   return children
 }
 
 function PublicRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <LoadingScreen />
-  return user ? <Navigate to="/dashboard" /> : children
+  return user ? <Navigate to="/dashboard" replace /> : children
 }
 
 function RegisterRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <LoadingScreen />
-  return user ? <Navigate to="/dashboard" /> : children
+  return user ? <Navigate to="/dashboard" replace /> : children
 }
 
 function AppContent() {
@@ -94,7 +99,7 @@ function AppContent() {
         <Route path="/payment/failure" element={<PaymentFailure />} />
         <Route path="/payment/pending" element={<PaymentPending />} />
 
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
 
       </Routes>
     </>

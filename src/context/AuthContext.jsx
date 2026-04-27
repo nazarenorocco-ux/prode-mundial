@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
@@ -18,7 +18,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const fetchProfile = async (userId) => {
+  const fetchProfile = useCallback(async (userId) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -31,7 +31,7 @@ export function AuthProvider({ children }) {
     } catch {
       if (isMounted.current) setIsAdmin(false)
     }
-  }
+  }, [])
 
   const signOut = async () => {
     try {
@@ -50,19 +50,46 @@ export function AuthProvider({ children }) {
     isMounted.current  = true
     hasSettled.current = false
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔔 Auth event:', event, session?.user?.email ?? 'sin sesión')
+    // 1. Leer sesión existente al inicio (para reloads)
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+
         if (!isMounted.current) return
 
         if (session?.user) {
           setUser(session.user)
-          settle()
           await fetchProfile(session.user.id)
         } else {
           setUser(null)
           setIsAdmin(false)
-          settle()
+        }
+      } catch {
+        if (isMounted.current) {
+          setUser(null)
+          setIsAdmin(false)
+        }
+      } finally {
+        settle()
+      }
+    }
+
+    initAuth()
+
+    // 2. Escuchar cambios futuros (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!isMounted.current) return
+        if (!hasSettled.current) return // initAuth no terminó todavía, ignorar
+
+        console.log('🔔 Auth event:', event, session?.user?.email ?? 'sin sesión')
+
+        if (session?.user) {
+          setUser(session.user)
+          await fetchProfile(session.user.id)
+        } else {
+          setUser(null)
+          setIsAdmin(false)
         }
       }
     )
@@ -71,7 +98,7 @@ export function AuthProvider({ children }) {
       isMounted.current = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [fetchProfile])
 
   return (
     <AuthContext.Provider value={{ user, isAdmin, loading, signOut }}>
