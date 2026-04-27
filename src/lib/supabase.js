@@ -53,3 +53,5 @@ export function getFlagUrl(flagValue) {
 
   return null
 }
+// TEMPORAL para testing — borrar después
+window._sb = supabase
