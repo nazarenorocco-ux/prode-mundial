@@ -43,8 +43,6 @@ function formatMatchDate(dateStr) {
   });
 }
 
-}
-
 export default function Landing() {
   const navigate = useNavigate();
   const [activePlayers, setActivePlayers]   = useState(0);
