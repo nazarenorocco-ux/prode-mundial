@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
     try {
       await supabase.auth.signOut()
     } catch {
-      // Si el signOut falla en Supabase, igual limpiamos el estado local
+      // silencioso
     } finally {
       if (isMounted.current) {
         setUser(null)
@@ -40,25 +40,46 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     isMounted.current = true
+    let settled = false
 
-    // Opción B: getSession() como respaldo inmediato
-    const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!isMounted.current) return
-
-      if (session?.user) {
-        setUser(session.user)
-        await fetchProfile(session.user.id)
+    const settle = () => {
+      if (!settled && isMounted.current) {
+        settled = true
+        setLoading(false)
       }
-      if (isMounted.current) setLoading(false)
+    }
+
+    // ── Safety net: si en 3s no resolvió, desbloqueamos igual ──
+    const timeout = setTimeout(() => {
+      console.warn('⚠️ Auth timeout — forzando loading=false')
+      settle()
+    }, 3000)
+
+    const initAuth = async () => {
+      try {
+        console.log('🔄 initAuth start')
+        const { data: { session }, error } = await supabase.auth.getSession()
+        console.log('✅ getSession result:', { session, error })
+
+        if (!isMounted.current) return
+
+        if (session?.user) {
+          setUser(session.user)
+          await fetchProfile(session.user.id)
+        }
+      } catch (err) {
+        console.error('❌ initAuth error:', err)
+      } finally {
+        clearTimeout(timeout)
+        settle()
+      }
     }
 
     initAuth()
 
-    // onAuthStateChange maneja cambios posteriores (login, logout, etc.)
-    // ignoramos INITIAL_SESSION porque ya lo manejó initAuth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔔 onAuthStateChange:', event, session?.user?.email)
         if (!isMounted.current) return
         if (event === 'INITIAL_SESSION') return
 
@@ -74,6 +95,7 @@ export function AuthProvider({ children }) {
 
     return () => {
       isMounted.current = false
+      clearTimeout(timeout)
       subscription.unsubscribe()
     }
   }, [])
