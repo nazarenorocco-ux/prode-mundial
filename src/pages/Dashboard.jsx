@@ -5,31 +5,38 @@ import PredictionForm from '../components/PredictionForm'
 
 export default function Dashboard() {
   const { user } = useAuth()
-  const [matches, setMatches] = useState([])
+  const [matches, setMatches]       = useState([])
   const [predictions, setPredictions] = useState({})
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState(null)
   const [activeGroup, setActiveGroup] = useState(null)
   const [userStatus, setUserStatus] = useState(null)
 
   const fetchData = useCallback(async () => {
     try {
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('status')
         .eq('id', user.id)
         .single()
 
+      if (profileError) throw profileError
+
       setUserStatus(profile?.status || 'pendiente')
 
-      const { data: matchesData } = await supabase
+      const { data: matchesData, error: matchesError } = await supabase
         .from('matches')
         .select('*')
         .order('match_date', { ascending: true })
 
-      const { data: predictionsData } = await supabase
+      if (matchesError) throw matchesError
+
+      const { data: predictionsData, error: predsError } = await supabase
         .from('predictions')
         .select('*')
         .eq('user_id', user.id)
+
+      if (predsError) throw predsError
 
       const predsMap = {}
       predictionsData?.forEach(p => {
@@ -42,6 +49,9 @@ export default function Dashboard() {
       if (matchesData?.length > 0) {
         setActiveGroup(prev => prev ?? (matchesData[0].group_name || 'Sin grupo'))
       }
+    } catch (err) {
+      console.error('Error cargando datos:', err)
+      setError('No se pudieron cargar los partidos.')
     } finally {
       setLoading(false)
     }
@@ -53,14 +63,22 @@ export default function Dashboard() {
 
   // ── Cálculo de puntos acumulados ──────────────────────────────────────
   const finishedMatches = matches.filter(m => m.status === 'finished')
-  const totalPoints = finishedMatches.reduce((sum, match) => {
-    const pred = predictions[match.id]
-    return sum + (pred?.points ?? 0)
-  }, 0)
 
-  const exactCount  = finishedMatches.filter(m => predictions[m.id]?.points === 3).length
-  const resultCount = finishedMatches.filter(m => predictions[m.id]?.points === 1).length
-  const missCount   = finishedMatches.filter(m => predictions[m.id]?.points === 0 && predictions[m.id] != null).length
+  const totalPoints = finishedMatches.reduce(
+    (sum, m) => sum + (predictions[m.id]?.points ?? 0),
+    0
+  )
+  const exactCount  = finishedMatches.filter(
+    m => predictions[m.id]?.points === 3
+  ).length
+  const resultCount = finishedMatches.filter(
+    m => predictions[m.id]?.points === 1
+  ).length
+  // Solo cuentan como "fallados" los partidos donde el usuario
+  // cargó predicción y salió 0 puntos (no los que no predijo)
+  const missCount   = finishedMatches.filter(
+    m => predictions[m.id] != null && predictions[m.id].points === 0
+  ).length
   const playedCount = finishedMatches.length
   // ─────────────────────────────────────────────────────────────────────
 
@@ -73,11 +91,19 @@ export default function Dashboard() {
 
   const groups = Object.keys(groupedMatches).sort()
 
+  // ── Estados de carga y error ──────────────────────────────────────────
   if (loading) return (
     <div className="main-container">
-      <p style={{ color: 'var(--text-muted)' }}>Cargando partidos...</p>
+      <p className="loading-text">Cargando partidos...</p>
     </div>
   )
+
+  if (error) return (
+    <div className="main-container">
+      <p className="error-text">{error}</p>
+    </div>
+  )
+  // ─────────────────────────────────────────────────────────────────────
 
   if (userStatus === 'pendiente') {
     return (
@@ -85,16 +111,16 @@ export default function Dashboard() {
         <div className="page-header">
           <h1>🏆 Mis Predicciones</h1>
         </div>
-        <div className="match-card" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
-          <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🔒</div>
-          <h2 style={{ color: 'var(--gold)', marginBottom: '0.75rem' }}>
-            Pago pendiente de confirmación
-          </h2>
-          <p style={{ color: 'var(--text-muted)', maxWidth: '420px', margin: '0 auto 1rem' }}>
-            Tu pago está siendo verificado. Una vez confirmado vas a poder cargar tus predicciones.
+        <div className="match-card pending-card">
+          <div className="pending-icon">🔒</div>
+          <h2 className="pending-title">Pago pendiente de confirmación</h2>
+          <p className="pending-desc">
+            Tu pago está siendo verificado. Una vez confirmado vas a poder
+            cargar tus predicciones.
           </p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            Si pagaste en efectivo, un administrador confirmará tu pago a la brevedad.
+          <p className="pending-note">
+            Si pagaste por transferencia, enviá el comprobante por WhatsApp
+            y un administrador confirmará tu pago a la brevedad.
           </p>
         </div>
       </div>
@@ -108,7 +134,7 @@ export default function Dashboard() {
         <p>Ingresá el resultado que creés que va a salir en cada partido</p>
       </div>
 
-      {/* ── Banner de puntos ── */}
+      {/* ── Banner de puntos (solo si hay partidos jugados) ── */}
       {finishedMatches.length > 0 && (
         <div className="points-summary-banner">
           <div className="points-summary-main">
@@ -124,18 +150,22 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="group-tabs">
-        {groups.map(group => (
-          <button
-            key={group}
-            className={`group-tab ${activeGroup === group ? 'active' : ''}`}
-            onClick={() => setActiveGroup(group)}
-          >
-            Grupo {group}
-          </button>
-        ))}
-      </div>
+      {/* ── Tabs de grupos ── */}
+      {groups.length > 0 && (
+        <div className="group-tabs">
+          {groups.map(group => (
+            <button
+              key={group}
+              className={`group-tab ${activeGroup === group ? 'active' : ''}`}
+              onClick={() => setActiveGroup(group)}
+            >
+              Grupo {group}
+            </button>
+          ))}
+        </div>
+      )}
 
+      {/* ── Partidos del grupo activo ── */}
       <div className="group-matches">
         {activeGroup && groupedMatches[activeGroup]?.map(match => (
           <PredictionForm
@@ -146,6 +176,13 @@ export default function Dashboard() {
           />
         ))}
       </div>
+
+      {/* ── Empty state si no hay partidos ── */}
+      {matches.length === 0 && (
+        <div className="empty-state">
+          <p>⚽ Aún no hay partidos cargados</p>
+        </div>
+      )}
     </div>
   )
 }

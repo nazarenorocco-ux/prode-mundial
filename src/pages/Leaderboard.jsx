@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 export default function Leaderboard() {
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError]     = useState(null)
 
   const fetchLeaderboard = async () => {
     try {
@@ -16,7 +16,7 @@ export default function Leaderboard() {
 
       if (error) throw error
       setPlayers(data || [])
-    } catch (err) {
+    } catch {
       setError('No se pudo cargar la tabla.')
     } finally {
       setLoading(false)
@@ -38,20 +38,27 @@ export default function Leaderboard() {
     return () => supabase.removeChannel(channel)
   }, [])
 
-  const getMedal = (index) => {
+  const getRankDisplay = (index) => {
     const medals = ['🥇', '🥈', '🥉']
-    return medals[index] ?? `#${index + 1}`
+    return medals[index] ?? null
+  }
+
+  const getRankClass = (index) => {
+    if (index === 0) return 'top-1'
+    if (index === 1) return 'top-2'
+    if (index === 2) return 'top-3'
+    return ''
   }
 
   if (loading) return (
     <div className="main-container">
-      <p style={{ color: 'var(--text-muted)' }}>Cargando tabla...</p>
+      <p className="loading-text">Cargando tabla...</p>
     </div>
   )
 
   if (error) return (
     <div className="main-container">
-      <p style={{ color: 'var(--error)' }}>{error}</p>
+      <p className="error-text">{error}</p>
     </div>
   )
 
@@ -62,19 +69,23 @@ export default function Leaderboard() {
         <p>{players.length} jugadores participando</p>
       </div>
 
-      <div className="leaderboard-card">
+      {/* "leaderboard" es la clase definida en App.css */}
+      <div className="leaderboard">
         {players.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
+          <p
+            style={{
+              color: 'var(--text-muted)',
+              textAlign: 'center',
+              padding: '2rem'
+            }}
+          >
             Aún no hay puntos cargados
           </p>
         ) : (
           players.map((player, index) => (
-            <div
-              key={player.id}
-              className={`leaderboard-row ${index < 3 ? 'top-three' : ''}`}
-            >
-              <div className="leaderboard-rank">
-                {getMedal(index)}
+            <div key={player.id} className="leaderboard-row">
+              <div className={`leaderboard-rank ${getRankClass(index)}`}>
+                {getRankDisplay(index) ?? `#${index + 1}`}
               </div>
               <div className="leaderboard-name">
                 {player.username}

@@ -3,8 +3,8 @@ import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
   const { user, isAdmin, signOut } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const navigate  = useNavigate()
+  const location  = useLocation()
 
   const handleSignOut = async () => {
     await signOut()
@@ -13,9 +13,15 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path ? 'active' : ''
 
+  // Mostrar username si está disponible en metadata (se guarda en signUp),
+  // fallback al email para cuentas antiguas o si el metadata no llegó aún
+  const displayName =
+    user?.user_metadata?.username ||
+    user?.email ||
+    ''
+
   return (
     <nav className="navbar">
-      {/* Logo → /dashboard si está logueado, / si no */}
       <Link to={user ? '/dashboard' : '/'} className="navbar-brand">
         ⚽ Prode Mundial 2026
       </Link>
@@ -43,7 +49,9 @@ export default function Navbar() {
                 Admin
               </Link>
             )}
-            <span className="navbar-user">{user.email}</span>
+            <span className="navbar-user" title={user.email}>
+              {displayName}
+            </span>
             <button className="btn btn-secondary" onClick={handleSignOut}>
               Salir
             </button>
@@ -56,10 +64,7 @@ export default function Navbar() {
             >
               Ingresar
             </Link>
-            <Link
-              to="/register"
-              className="btn btn-primary"
-            >
+            <Link to="/register" className="btn btn-primary">
               Registrarse
             </Link>
           </>

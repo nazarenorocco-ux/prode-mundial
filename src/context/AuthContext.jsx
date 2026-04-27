@@ -1,12 +1,15 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser]       = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  // Ref para evitar actualizaciones de estado en componente desmontado
+  const isMounted = useRef(true)
 
   const fetchProfile = async (userId) => {
     try {
@@ -17,10 +20,10 @@ export function AuthProvider({ children }) {
         .single()
 
       if (error) throw error
-      setIsAdmin(data?.is_admin ?? false)
+      if (isMounted.current) setIsAdmin(data?.is_admin ?? false)
     } catch {
       // Perfil no encontrado o error de red — asumir no-admin
-      setIsAdmin(false)
+      if (isMounted.current) setIsAdmin(false)
     }
   }
 
@@ -30,28 +33,22 @@ export function AuthProvider({ children }) {
     } catch {
       // Si el signOut falla en Supabase, igual limpiamos el estado local
     } finally {
-      setUser(null)
-      setIsAdmin(false)
+      if (isMounted.current) {
+        setUser(null)
+        setIsAdmin(false)
+      }
     }
   }
 
   useEffect(() => {
-    // Flag para evitar que onAuthStateChange actúe antes
-    // de que getSession termine (doble-fire en mount)
-    let initialized = false
+    isMounted.current = true
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user)
-        await fetchProfile(session.user.id)
-      }
-      initialized = true
-      setLoading(false)
-    })
-
+    // onAuthStateChange recibe INITIAL_SESSION como primer evento,
+    // que equivale al getSession() — lo usamos como única fuente de verdad
+    // para evitar la race condition del flag initialized.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!initialized) return
+        if (!isMounted.current) return
 
         if (session?.user) {
           setUser(session.user)
@@ -60,10 +57,17 @@ export function AuthProvider({ children }) {
           setUser(null)
           setIsAdmin(false)
         }
+
+        // Loading false después del primer evento (INITIAL_SESSION)
+        // que siempre dispara al montar, con o sin sesión activa
+        if (isMounted.current) setLoading(false)
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted.current = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   return (
