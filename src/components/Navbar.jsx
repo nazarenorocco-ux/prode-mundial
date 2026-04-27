@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
-  const { user, isAdmin, signOut } = useAuth()
+  const { user, isAdmin, signOut, signingOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -53,8 +53,12 @@ export default function Navbar() {
             <span className="navbar-user" title={user.email}>
               {displayName}
             </span>
-            <button className="btn btn-secondary" onClick={handleSignOut}>
-              Salir
+            <button
+              className="btn btn-secondary"
+              onClick={handleSignOut}
+              disabled={signingOut}
+            >
+              {signingOut ? 'Saliendo...' : 'Salir'}
             </button>
           </>
         ) : (

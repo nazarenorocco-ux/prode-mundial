@@ -4,9 +4,10 @@ import { supabase } from '../lib/supabaseClient'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser]           = useState(null)
+  const [isAdmin, setIsAdmin]     = useState(false)
+  const [loading, setLoading]     = useState(true)
+  const [signingOut, setSigningOut] = useState(false)
 
   const isMounted  = useRef(true)
   const hasSettled = useRef(false)
@@ -34,8 +35,9 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     console.log('🚪 signOut iniciado')
+    setSigningOut(true)
     try {
       await supabase.auth.signOut()
       console.log('✅ supabase.auth.signOut() completado')
@@ -45,10 +47,11 @@ export function AuthProvider({ children }) {
       if (isMounted.current) {
         setUser(null)
         setIsAdmin(false)
+        setSigningOut(false)
         console.log('🔴 User seteado a null')
       }
     }
-  }
+  }, [])
 
   useEffect(() => {
     isMounted.current  = true
@@ -94,8 +97,11 @@ export function AuthProvider({ children }) {
           setUser(session.user)
           await fetchProfile(session.user.id)
         } else {
-          setUser(null)
-          setIsAdmin(false)
+          // El signOut manual ya maneja esto, evitar doble setState
+          if (!signingOut) {
+            setUser(null)
+            setIsAdmin(false)
+          }
         }
       }
     )
@@ -104,10 +110,10 @@ export function AuthProvider({ children }) {
       isMounted.current = false
       subscription.unsubscribe()
     }
-  }, [fetchProfile])
+  }, [fetchProfile])  // signingOut NO va en deps para no re-suscribir
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, loading, signOut }}>
+    <AuthContext.Provider value={{ user, isAdmin, loading, signingOut, signOut }}>
       {children}
     </AuthContext.Provider>
   )

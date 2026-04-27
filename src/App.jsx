@@ -25,29 +25,38 @@ function LoadingScreen() {
 }
 
 function PrivateRoute({ children }) {
-  const { user, loading } = useAuth()
-  console.log('🛡️ PrivateRoute - loading:', loading, 'user:', user?.email ?? 'null')
-  if (loading) return <LoadingScreen />
+  const { user, loading, signingOut } = useAuth()
+  console.log('🛡️ PrivateRoute - loading:', loading, 'signingOut:', signingOut, 'user:', user?.email ?? 'null')
+  
+  // Si está en proceso de signOut, mostrar loading en vez de redirigir
+  if (loading || signingOut) return <LoadingScreen />
   return user ? children : <Navigate to="/login" replace />
 }
 
 function AdminRoute({ children }) {
-  const { user, loading, isAdmin } = useAuth()
-  console.log('🛡️ AdminRoute - loading:', loading, 'user:', user?.email ?? 'null', 'isAdmin:', isAdmin)
-  if (loading) return <LoadingScreen />
+  const { user, loading, isAdmin, signingOut } = useAuth()
+  console.log('🛡️ AdminRoute - loading:', loading, 'signingOut:', signingOut, 'user:', user?.email ?? 'null')
+  
+  if (loading || signingOut) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
   if (!isAdmin) return <Navigate to="/" replace />
   return children
 }
 
 function PublicRoute({ children }) {
-  const { user, loading } = useAuth()
-  console.log('🔓 PublicRoute - loading:', loading, 'user:', user?.email ?? 'null')
-  if (loading) return <LoadingScreen />
+  const { user, loading, signingOut } = useAuth()
+  console.log('🔓 PublicRoute - loading:', loading, 'signingOut:', signingOut, 'user:', user?.email ?? 'null')
+  
+  if (loading || signingOut) return <LoadingScreen />
   return user ? <Navigate to="/dashboard" replace /> : children
 }
 
 function AppContent() {
+  const { signingOut } = useAuth()
+
+  // Mientras hace signOut, mostrar loading global
+  if (signingOut) return <LoadingScreen />
+
   return (
     <>
       <Navbar />
