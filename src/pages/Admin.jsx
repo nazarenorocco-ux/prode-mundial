@@ -1,380 +1,290 @@
-import { useState, useEffect } from 'react'
-import { supabase, getFlagUrl } from '../lib/supabaseClient'
+// src/pages/Admin.jsx
+import { useState, useEffect, useCallback } from 'react'
+import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { formatearFecha } from '../utils/dateUtils'
 
-export default function Admin() {
-  const { isAdmin, isSuperAdmin, loading } = useAuth()
-  const navigate = useNavigate()
+// ─── Custom Hook: Jugadores ───────────────────────────────────────────────────
+function useAdminPlayers() {
+  const [players, setPlayers]   = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [error, setError]       = useState(null)
 
-  const [activeTab, setActiveTab]     = useState('results')
-  const [matches, setMatches]         = useState([])
-  const [initialLoad, setInitialLoad] = useState(true)
-  const [updating, setUpdating]       = useState(null)
-  const [scores, setScores]           = useState({})
-  const [editing, setEditing]         = useState({})
+  const fetchPlayers = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false })
 
-  // Jugadores
-  const [players, setPlayers]                   = useState([])
-  const [loadingPlayers, setLoadingPlayers]     = useState(false)
-  const [deletingPlayer, setDeletingPlayer]     = useState(null)
-  const [confirmingPlayer, setConfirmingPlayer] = useState(null)
-  const [togglingAdmin, setTogglingAdmin]       = useState(null)
+    if (error) setError(error.message)
+    else setPlayers(data || [])
+    setLoading(false)
+  }, [])
 
-  // Superadmin - cerrar prode
-  const [closingProde, setClosingProde] = useState(false)
-  const [prodeStatus, setProdeStatus]   = useState('open') // 'open' | 'closed'
+  useEffect(() => { fetchPlayers() }, [fetchPlayers])
 
-  useEffect(() => {
-    if (loading) return
-    if (!isAdmin) {
-      navigate('/')
-      return
-    }
-    fetchMatches()
-    if (isSuperAdmin) fetchProdeStatus()
-  }, [loading, isAdmin])
+  return { players, loading, error, refetch: fetchPlayers }
+}
 
-  useEffect(() => {
-    if (activeTab === 'players') fetchPlayers()
-  }, [activeTab])
+// ─── Custom Hook: Partidos ────────────────────────────────────────────────────
+function useAdminMatches() {
+  const [matches, setMatches]   = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [error, setError]       = useState(null)
 
-  // ── Fetch ──────────────────────────────────────────────────────────────
-
-  const fetchMatches = async () => {
-    const { data } = await supabase
+  const fetchMatches = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    const { data, error } = await supabase
       .from('matches')
       .select('*')
       .order('match_date', { ascending: true })
 
-    setMatches(data || [])
-    setInitialLoad(false)
-  }
+    if (error) setError(error.message)
+    else setMatches(data || [])
+    setLoading(false)
+  }, [])
 
-  const fetchPlayers = async () => {
-    setLoadingPlayers(true)
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, username, email, points, status, payment_method, created_at, is_admin, is_superadmin')
-      .order('created_at', { ascending: false })
+  useEffect(() => { fetchMatches() }, [fetchMatches])
 
-    setPlayers(data || [])
-    setLoadingPlayers(false)
-  }
+  return { matches, loading, error, refetch: fetchMatches }
+}
 
-  const fetchProdeStatus = async () => {
-    const { data } = await supabase
+// ─── Modal de Confirmación ────────────────────────────────────────────────────
+function ConfirmModal({ message, onConfirm, onCancel }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0,
+      background: 'rgba(0,0,0,0.7)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        background: 'var(--card-bg)',
+        border: '1px solid var(--border)',
+        borderRadius: '12px',
+        padding: '2rem',
+        maxWidth: '400px',
+        width: '90%',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚠️</div>
+        <p style={{ marginBottom: '1.5rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+          {message}
+        </p>
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+          <button className="btn" onClick={onCancel}
+            style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+            Cancelar
+          </button>
+          <button className="btn btn-danger" onClick={onConfirm}>
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Componente Principal ─────────────────────────────────────────────────────
+export default function Admin() {
+  const { user, isSuperAdmin } = useAuth()
+
+  // Tabs
+  const [activeTab, setActiveTab] = useState('results')
+
+  // Hooks
+  const {
+    players, loading: loadingPlayers, error: errorPlayers, refetch: refetchPlayers
+  } = useAdminPlayers()
+
+  const {
+    matches, loading: loadingMatches, error: errorMatches, refetch: refetchMatches
+  } = useAdminMatches()
+
+  // Resultados
+  const [editingMatch, setEditingMatch]     = useState(null)
+  const [homeScore, setHomeScore]           = useState('')
+  const [awayScore, setAwayScore]           = useState('')
+  const [savingResult, setSavingResult]     = useState(false)
+  const [savedMatchId, setSavedMatchId]     = useState(null)
+  const [resultError, setResultError]       = useState('')
+  const [calculatingPts, setCalculatingPts] = useState(false)
+  const [calcMessage, setCalcMessage]       = useState('')
+  const [matchFilter, setMatchFilter]       = useState('all')
+
+  // Jugadores
+  const [playerSearch, setPlayerSearch]     = useState('')
+  const [playerFilter, setPlayerFilter]     = useState('all')
+  const [confirmingId, setConfirmingId]     = useState(null)
+
+  // Superadmin
+  const [prodeStatus, setProdeStatus]       = useState(null)
+  const [togglingStatus, setTogglingStatus] = useState(false)
+
+  // Modal
+  const [modal, setModal] = useState(null) // { message, onConfirm }
+
+  // ── Cargar prode_status ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const fetchStatus = async () => {
+      const { data } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'prode_status')
+        .single()
+      if (data) setProdeStatus(data.value)
+    }
+    if (isSuperAdmin) fetchStatus()
+  }, [isSuperAdmin])
+
+  // ── Toggle prode_status ──────────────────────────────────────────────────────
+  const handleToggleProdeStatus = async () => {
+    setTogglingStatus(true)
+    const newStatus = prodeStatus === 'open' ? 'closed' : 'open'
+    const { error } = await supabase
       .from('settings')
-      .select('value')
+      .update({ value: newStatus })
       .eq('key', 'prode_status')
-      .single()
-
-    if (data) setProdeStatus(data.value)
+    if (!error) setProdeStatus(newStatus)
+    setTogglingStatus(false)
   }
 
-  // ── Acciones sobre jugadores ───────────────────────────────────────────
+  // ── Guardar resultado ────────────────────────────────────────────────────────
+  const handleSaveResult = async (match) => {
+    setResultError('')
+    const h = parseInt(homeScore)
+    const a = parseInt(awayScore)
+    if (isNaN(h) || isNaN(a) || h < 0 || a < 0 || h > 20 || a > 20) {
+      setResultError('Scores inválidos (0-20)')
+      return
+    }
+    setSavingResult(true)
+    const { error } = await supabase
+      .from('matches')
+      .update({ home_score: h, away_score: a, status: 'finished' })
+      .eq('id', match.id)
 
-  const handleConfirmPayment = async (player) => {
-    const ok = window.confirm(
-      `¿Confirmar el pago en efectivo de "${player.username}"?`
-    )
-    if (!ok) return
+    setSavingResult(false)
+    if (error) { setResultError(error.message); return }
 
-    setConfirmingPlayer(player.id)
+    setSavedMatchId(match.id)
+    setTimeout(() => setSavedMatchId(null), 2000)
+    setEditingMatch(null)
+    setHomeScore('')
+    setAwayScore('')
+    refetchMatches()
+  }
 
+  // ── Calcular puntos ──────────────────────────────────────────────────────────
+  const handleCalculatePoints = async () => {
+    if (calculatingPts) return
+    setCalculatingPts(true)
+    setCalcMessage('')
+    const { error } = await supabase.rpc('calculate_points')
+    setCalculatingPts(false)
+    setCalcMessage(error ? `❌ Error: ${error.message}` : '✅ Puntos calculados correctamente')
+    setTimeout(() => setCalcMessage(''), 4000)
+  }
+
+  // ── Confirmar pago manual ────────────────────────────────────────────────────
+  const handleConfirmPayment = async (playerId) => {
+    setConfirmingId(playerId)
     const { error } = await supabase
       .from('profiles')
       .update({ status: 'activo', payment_method: 'manual' })
-      .eq('id', player.id)
-
-    if (error) {
-      alert('Error al confirmar pago: ' + error.message)
-    } else {
-      setPlayers(prev =>
-        prev.map(p =>
-          p.id === player.id
-            ? { ...p, status: 'activo', payment_method: 'manual' }
-            : p
-        )
-      )
-    }
-
-    setConfirmingPlayer(null)
+      .eq('id', playerId)
+    setConfirmingId(null)
+    if (!error) refetchPlayers()
   }
 
-  const handleDeletePlayer = async (player) => {
-    const ok = window.confirm(
-      `¿Seguro que querés eliminar a "${player.username}"?\n` +
-      `Esto eliminará su cuenta y todas sus predicciones.`
-    )
-    if (!ok) return
-
-    setDeletingPlayer(player.id)
-
-    try {
-      const { error: predError } = await supabase
-        .from('predictions')
-        .delete()
-        .eq('user_id', player.id)
-
-      if (predError) throw new Error('Error borrando predicciones: ' + predError.message)
-
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', player.id)
-
-      if (profileError) throw new Error('Error borrando perfil: ' + profileError.message)
-
-      const { error: authError } = await supabase.rpc('delete_user', {
-        user_id: player.id
-      })
-
-      if (authError) {
-        console.warn('No se pudo borrar el usuario de auth:', authError.message)
-      }
-
-      setPlayers(prev => prev.filter(p => p.id !== player.id))
-
-    } catch (err) {
-      alert(err.message)
-    } finally {
-      setDeletingPlayer(null)
-    }
-  }
-
-  // ── Solo SuperAdmin ────────────────────────────────────────────────────
-
+  // ── Promover/Demote admin ────────────────────────────────────────────────────
   const handleToggleAdmin = async (player) => {
-    // Protección: no se puede tocar al superadmin
-    if (player.is_superadmin) {
-      alert('No podés modificar los permisos del superadministrador.')
-      return
-    }
-
-    // Solo el superadmin puede promover/degradar admins
-    if (!isSuperAdmin) {
-      alert('Solo el superadministrador puede cambiar roles.')
-      return
-    }
-
-    const action = player.is_admin ? 'quitarle el rol de admin' : 'hacer admin'
-    const ok = window.confirm(
-      `¿Seguro que querés ${action} a "${player.username}"?`
-    )
-    if (!ok) return
-
-    setTogglingAdmin(player.id)
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ is_admin: !player.is_admin })
-      .eq('id', player.id)
-
-    if (error) {
-      alert('Error al actualizar: ' + error.message)
-    } else {
-      setPlayers(prev =>
-        prev.map(p =>
-          p.id === player.id ? { ...p, is_admin: !p.is_admin } : p
-        )
-      )
-    }
-
-    setTogglingAdmin(null)
-  }
-
-  const handleToggleProde = async () => {
-    const newStatus = prodeStatus === 'open' ? 'closed' : 'open'
-    const action    = newStatus === 'closed' ? 'CERRAR' : 'ABRIR'
-    const msg       = newStatus === 'closed'
-      ? '⚠️ ¿Cerrás el prode? Los jugadores NO podrán hacer nuevas predicciones.'
-      : '¿Abrís el prode nuevamente?'
-
-    const ok = window.confirm(msg)
-    if (!ok) return
-
-    setClosingProde(true)
-
-    const { error } = await supabase
-      .from('settings')
-      .upsert({ key: 'prode_status', value: newStatus })
-
-    if (error) {
-      alert('Error: ' + error.message)
-    } else {
-      setProdeStatus(newStatus)
-      alert(`Prode ${action === 'CERRAR' ? 'cerrado' : 'abierto'} correctamente.`)
-    }
-
-    setClosingProde(false)
-  }
-
-  // ── Acciones sobre resultados ──────────────────────────────────────────
-
-  const handleScoreChange = (matchId, field, value) => {
-    setScores(prev => ({
-      ...prev,
-      [matchId]: { ...prev[matchId], [field]: value }
-    }))
-  }
-
-  const handleStartEdit = (match) => {
-    setEditing(prev => ({ ...prev, [match.id]: true }))
-    setScores(prev => ({
-      ...prev,
-      [match.id]: {
-        home_score: match.home_score ?? '',
-        away_score: match.away_score ?? ''
+    const action = player.is_admin ? 'quitar admin a' : 'hacer admin a'
+    setModal({
+      message: `¿Querés ${action} ${player.username}?`,
+      onConfirm: async () => {
+        setModal(null)
+        await supabase
+          .from('profiles')
+          .update({ is_admin: !player.is_admin })
+          .eq('id', player.id)
+        refetchPlayers()
       }
-    }))
-  }
-
-  const handleCancelEdit = (matchId) => {
-    setEditing(prev => ({ ...prev, [matchId]: false }))
-    setScores(prev => {
-      const next = { ...prev }
-      delete next[matchId]
-      return next
     })
   }
 
-  const handleUpdateResult = async (match) => {
-    const score = scores[match.id]
-
-    if (
-      !score ||
-      score.home_score === '' ||
-      score.home_score === undefined ||
-      score.away_score === '' ||
-      score.away_score === undefined
-    ) {
-      alert('Ingresá ambos scores antes de guardar')
-      return
-    }
-
-    setUpdating(match.id)
-
-    const homeScore = parseInt(score.home_score)
-    const awayScore = parseInt(score.away_score)
-
-    const { error: matchError } = await supabase
-      .from('matches')
-      .update({ home_score: homeScore, away_score: awayScore, status: 'finished' })
-      .eq('id', match.id)
-
-    if (matchError) {
-      alert('Error al guardar: ' + matchError.message)
-      setUpdating(null)
-      return
-    }
-
-    const { error: pointsError } = await supabase.rpc('calculate_points')
-
-    if (pointsError) {
-      alert('Error al calcular puntos: ' + pointsError.message)
-    }
-
-    setEditing(prev => ({ ...prev, [match.id]: false }))
-    setUpdating(null)
-    fetchMatches()
-  }
-
-  // ── Helpers ────────────────────────────────────────────────────────────
-
- const formatDate = (dateStr) => {
-  const date = new Date(dateStr);
-  return date.toLocaleString('es-AR', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-};
-
-
-  const getPaymentMethodBadge = (method) => {
-    const styles = {
-      mercadopago: {
-        background: '#009ee322',
-        color: '#009ee3',
-        label: '💳 MercadoPago'
-      },
-      manual: {
-        background: '#6c757d22',
-        color: '#adb5bd',
-        label: '💵 Efectivo'
-      },
-      default: {
-        background: '#ffffff11',
-        color: 'var(--text-muted)',
-        label: '— Sin registrar'
+  // ── Eliminar usuario ─────────────────────────────────────────────────────────
+  const handleDeleteUser = (player) => {
+    setModal({
+      message: `¿Estás seguro que querés eliminar a "${player.username}"? Esta acción no se puede deshacer.`,
+      onConfirm: async () => {
+        setModal(null)
+        await supabase.from('predictions').delete().eq('user_id', player.id)
+        await supabase.from('profiles').delete().eq('id', player.id)
+        await supabase.rpc('delete_user', { user_id: player.id })
+        refetchPlayers()
       }
-    }
-
-    const s = styles[method] || styles.default
-
-    return (
-      <span className="admin-payment-badge" style={{ background: s.background, color: s.color }}>
-        {s.label}
-      </span>
-    )
+    })
   }
 
-  // ── Métricas ───────────────────────────────────────────────────────────
+  // ── Filtros de partidos ──────────────────────────────────────────────────────
+  const groups = [...new Set(matches.map(m => m.group_name).filter(Boolean))]
 
-  const activePlayers  = players.filter(p => p.status === 'activo').length
-  const pendingPlayers = players.filter(p => p.status === 'pendiente').length
-  const mpPlayers      = players.filter(p => p.payment_method === 'mercadopago').length
-  const manualPlayers  = players.filter(p => p.payment_method === 'manual').length
+  const filteredMatches = matches.filter(m => {
+    if (matchFilter === 'all') return true
+    if (matchFilter === 'finished') return m.status === 'finished'
+    if (matchFilter === 'upcoming') return m.status !== 'finished'
+    return m.group_name === matchFilter
+  })
 
-  // ── Guards ─────────────────────────────────────────────────────────────
+  // ── Filtros de jugadores ─────────────────────────────────────────────────────
+  const filteredPlayers = players.filter(p => {
+    const matchesSearch = p.username?.toLowerCase().includes(playerSearch.toLowerCase()) ||
+                          p.email?.toLowerCase().includes(playerSearch.toLowerCase())
+    const matchesFilter = playerFilter === 'all' ||
+                          (playerFilter === 'activo'   && p.status === 'activo')   ||
+                          (playerFilter === 'pendiente' && p.status === 'pendiente') ||
+                          (playerFilter === 'mp'       && p.payment_method === 'mp') ||
+                          (playerFilter === 'manual'   && p.payment_method === 'manual')
+    return matchesSearch && matchesFilter
+  })
 
-  if (loading) return (
-    <div className="main-container">
-      <p className="loading-text">Verificando acceso...</p>
-    </div>
-  )
+  // ── Métricas jugadores ───────────────────────────────────────────────────────
+  const metrics = {
+    total:    players.length,
+    activos:  players.filter(p => p.status === 'activo').length,
+    pending:  players.filter(p => p.status === 'pendiente').length,
+    mp:       players.filter(p => p.payment_method === 'mp').length,
+    manual:   players.filter(p => p.payment_method === 'manual').length,
+  }
 
-  if (!isAdmin) return null
-
-  if (initialLoad) return (
-    <div className="main-container">
-      <p className="loading-text">Cargando...</p>
-    </div>
-  )
-
-  // ── Render ─────────────────────────────────────────────────────────────
-
+  // ────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="main-container">
-      <div className="page-header">
-        <h1>
-          {isSuperAdmin ? '👑 Panel Superadmin' : '⚙️ Panel de Administración'}
-        </h1>
-        {isSuperAdmin && (
-          <span style={{
-            fontSize: '0.75rem',
-            background: '#7c3aed22',
-            color: '#a78bfa',
-            padding: '0.25rem 0.75rem',
-            borderRadius: '999px',
-            border: '1px solid #7c3aed44'
-          }}>
-            Acceso total
-          </span>
-        )}
-      </div>
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '1rem' }}>
 
-      {/* ── Banner SuperAdmin ── */}
+      {/* Modal de confirmación */}
+      {modal && (
+        <ConfirmModal
+          message={modal.message}
+          onConfirm={modal.onConfirm}
+          onCancel={() => setModal(null)}
+        />
+      )}
+
+      <h1 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+        ⚙️ Panel de Administración
+      </h1>
+
+      {/* ── Banner Superadmin ── */}
       {isSuperAdmin && (
         <div style={{
-          background: '#7c3aed15',
-          border: '1px solid #7c3aed44',
-          borderRadius: '12px',
-          padding: '1rem 1.25rem',
+          background: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
+          border: '1px solid #7c3aed',
+          borderRadius: '10px',
+          padding: '1rem 1.5rem',
           marginBottom: '1.5rem',
           display: 'flex',
           alignItems: 'center',
@@ -383,35 +293,29 @@ export default function Admin() {
           gap: '0.75rem'
         }}>
           <div>
-            <div style={{ color: '#a78bfa', fontWeight: 600, marginBottom: '0.25rem' }}>
-              🔐 Control del Prode
+            <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#e9d5ff' }}>
+              👑 Control Superadmin
             </div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              Estado actual:{' '}
-              <span style={{
-                color: prodeStatus === 'open' ? '#22c55e' : '#ef4444',
-                fontWeight: 600
-              }}>
+            <div style={{ fontSize: '0.82rem', color: '#c4b5fd', marginTop: '0.2rem' }}>
+              Estado del prode:{' '}
+              <strong style={{ color: prodeStatus === 'open' ? '#4ade80' : '#f87171' }}>
                 {prodeStatus === 'open' ? '🟢 Abierto' : '🔴 Cerrado'}
-              </span>
+              </strong>
             </div>
           </div>
           <button
-            onClick={handleToggleProde}
-            disabled={closingProde}
+            className="btn"
+            onClick={handleToggleProdeStatus}
+            disabled={togglingStatus || prodeStatus === null}
             style={{
-              background: prodeStatus === 'open' ? '#ef444422' : '#22c55e22',
-              color: prodeStatus === 'open' ? '#ef4444' : '#22c55e',
-              border: `1px solid ${prodeStatus === 'open' ? '#ef444444' : '#22c55e44'}`,
-              borderRadius: '8px',
-              padding: '0.5rem 1rem',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.9rem'
+              background: prodeStatus === 'open' ? '#dc2626' : '#16a34a',
+              color: '#fff',
+              border: 'none',
+              fontWeight: '600'
             }}
           >
-            {closingProde
-              ? 'Procesando...'
+            {togglingStatus
+              ? 'Cambiando...'
               : prodeStatus === 'open'
                 ? '🔒 Cerrar Prode'
                 : '🔓 Abrir Prode'}
@@ -420,283 +324,503 @@ export default function Admin() {
       )}
 
       {/* ── Tabs ── */}
-      <div className="admin-tabs">
-        <button
-          className={`admin-tab ${activeTab === 'results' ? 'active' : ''}`}
-          onClick={() => setActiveTab('results')}
-        >
-          ⚽ Resultados
-        </button>
-        <button
-          className={`admin-tab ${activeTab === 'players' ? 'active' : ''}`}
-          onClick={() => setActiveTab('players')}
-        >
-          👥 Jugadores ({players.length})
-        </button>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+        {['results', 'players'].map(tab => (
+          <button
+            key={tab}
+            className="btn"
+            onClick={() => setActiveTab(tab)}
+            style={{
+              background: activeTab === tab ? 'var(--accent)' : 'var(--bg-secondary)',
+              color: activeTab === tab ? '#fff' : 'var(--text-secondary)',
+              fontWeight: activeTab === tab ? '700' : '400'
+            }}
+          >
+            {tab === 'results' ? '⚽ Resultados' : '👥 Jugadores'}
+          </button>
+        ))}
       </div>
 
-      {/* ══════════════ TAB: RESULTADOS ══════════════ */}
+      {/* ══════════════════════════════════════════════════════════════════════
+          TAB: RESULTADOS
+      ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'results' && (
-        <>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
-            Cargá los resultados de cada partido
-          </p>
-
-          {matches.map(match => (
-            <div key={match.id} className="match-card">
-
-              <div className="match-header">
-                <div className="match-teams">
-                  {match.home_flag && getFlagUrl(match.home_flag) && (
-                    <img
-                      src={getFlagUrl(match.home_flag)}
-                      alt={match.home_team}
-                      className="flag-img"
-                    />
-                  )}
-                  <span>{match.home_team}</span>
-                  <span className="match-vs">vs</span>
-                  {match.away_flag && getFlagUrl(match.away_flag) && (
-                    <img
-                      src={getFlagUrl(match.away_flag)}
-                      alt={match.away_team}
-                      className="flag-img"
-                    />
-                  )}
-                  <span>{match.away_team}</span>
-                </div>
-                {match.status === 'finished' && !editing[match.id] && (
-                  <span className="badge badge-saved">✓ Finalizado</span>
-                )}
+        <div>
+          {/* Calcular Puntos */}
+          <div style={{
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: '10px',
+            padding: '1rem 1.5rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}>
+            <div>
+              <div style={{ fontWeight: '600', marginBottom: '0.2rem' }}>
+                🧮 Calcular Puntos
               </div>
-
-              <div style={{
-                fontSize: '0.8rem',
-                color: 'var(--text-muted)',
-                marginBottom: '0.8rem'
-              }}>
-                📅 {formatDate(match.match_date)}
-                {match.status === 'finished' && (
-                  <span style={{ marginLeft: '1rem', color: 'var(--gold)' }}>
-                    Resultado actual: {match.home_score} - {match.away_score}
-                  </span>
-                )}
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                Ejecuta el cálculo de puntos para todos los partidos finalizados
               </div>
-
-              {match.status !== 'finished' && (
-                <div className="prediction-row">
-                  <div className="score-input">
-                    <input
-                      type="number" min="0" max="20" placeholder="0"
-                      value={scores[match.id]?.home_score ?? ''}
-                      onChange={(e) =>
-                        handleScoreChange(match.id, 'home_score', e.target.value)
-                      }
-                    />
-                    <span className="score-separator">-</span>
-                    <input
-                      type="number" min="0" max="20" placeholder="0"
-                      value={scores[match.id]?.away_score ?? ''}
-                      onChange={(e) =>
-                        handleScoreChange(match.id, 'away_score', e.target.value)
-                      }
-                    />
-                  </div>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => handleUpdateResult(match)}
-                    disabled={updating === match.id}
-                  >
-                    {updating === match.id ? 'Guardando...' : 'Cargar Resultado'}
-                  </button>
-                </div>
-              )}
-
-              {match.status === 'finished' && !editing[match.id] && (
-                <div style={{ marginTop: '0.5rem' }}>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => handleStartEdit(match)}
-                  >
-                    ✏️ Corregir Resultado
-                  </button>
-                </div>
-              )}
-
-              {match.status === 'finished' && editing[match.id] && (
-                <div className="prediction-row" style={{
-                  marginTop: '0.5rem',
-                  flexWrap: 'wrap',
-                  gap: '0.5rem'
+              {calcMessage && (
+                <div style={{
+                  marginTop: '0.4rem',
+                  fontSize: '0.85rem',
+                  fontWeight: '600',
+                  color: calcMessage.startsWith('✅') ? 'var(--success)' : 'var(--error)'
                 }}>
-                  <div className="score-input">
-                    <input
-                      type="number" min="0" max="20" placeholder="0"
-                      value={scores[match.id]?.home_score ?? ''}
-                      onChange={(e) =>
-                        handleScoreChange(match.id, 'home_score', e.target.value)
-                      }
-                    />
-                    <span className="score-separator">-</span>
-                    <input
-                      type="number" min="0" max="20" placeholder="0"
-                      value={scores[match.id]?.away_score ?? ''}
-                      onChange={(e) =>
-                        handleScoreChange(match.id, 'away_score', e.target.value)
-                      }
-                    />
-                  </div>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => handleUpdateResult(match)}
-                    disabled={updating === match.id}
-                  >
-                    {updating === match.id ? 'Guardando...' : '💾 Guardar Corrección'}
-                  </button>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => handleCancelEdit(match.id)}
-                    disabled={updating === match.id}
-                  >
-                    Cancelar
-                  </button>
+                  {calcMessage}
                 </div>
               )}
             </div>
-          ))}
-        </>
+            <button
+              className="btn btn-primary"
+              onClick={handleCalculatePoints}
+              disabled={calculatingPts}
+            >
+              {calculatingPts ? '⏳ Calculando...' : '🚀 Calcular Puntos'}
+            </button>
+          </div>
+
+          {/* Filtros de partidos */}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            {[
+              { value: 'all',      label: 'Todos' },
+              { value: 'upcoming', label: '🕐 Pendientes' },
+              { value: 'finished', label: '✅ Finalizados' },
+              ...groups.map(g => ({ value: g, label: `Grupo ${g}` }))
+            ].map(f => (
+              <button
+                key={f.value}
+                className="btn"
+                onClick={() => setMatchFilter(f.value)}
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '0.3rem 0.75rem',
+                  background: matchFilter === f.value ? 'var(--accent)' : 'var(--bg-secondary)',
+                  color: matchFilter === f.value ? '#fff' : 'var(--text-secondary)',
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Error / Loading */}
+          {errorMatches && (
+            <div className="card" style={{ color: 'var(--error)', textAlign: 'center', padding: '2rem' }}>
+              ❌ Error al cargar partidos: {errorMatches}
+              <br />
+              <button className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={refetchMatches}>
+                Reintentar
+              </button>
+            </div>
+          )}
+
+          {loadingMatches && !errorMatches && (
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+              Cargando partidos...
+            </div>
+          )}
+
+          {/* Lista de partidos */}
+          {!loadingMatches && !errorMatches && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {filteredMatches.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  No hay partidos con ese filtro
+                </div>
+              )}
+
+              {filteredMatches.map(match => (
+                <div
+                  key={match.id}
+                  className="card"
+                  style={{ padding: '1rem 1.25rem' }}
+                >
+                  {/* Partido info */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.5rem',
+                    marginBottom: '0.5rem'
+                  }}>
+                    <div>
+                      <span style={{ fontWeight: '700' }}>
+                        {match.home_team} vs {match.away_team}
+                      </span>
+                      {match.group_name && (
+                        <span style={{
+                          marginLeft: '0.5rem',
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          background: 'var(--bg-secondary)',
+                          padding: '0.1rem 0.4rem',
+                          borderRadius: '4px'
+                        }}>
+                          Grupo {match.group_name}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      📅 {formatearFecha(match.match_date)}
+                    </div>
+                  </div>
+
+                  {/* Resultado actual */}
+                  {match.status === 'finished' && (
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: 'var(--text-muted)',
+                      marginBottom: '0.5rem'
+                    }}>
+                      Resultado:{' '}
+                      <strong style={{ color: 'var(--text-primary)' }}>
+                        {match.home_score} - {match.away_score}
+                      </strong>
+                      {' '}
+                      <span style={{
+                        fontSize: '0.75rem',
+                        background: '#166534',
+                        color: '#4ade80',
+                        padding: '0.1rem 0.4rem',
+                        borderRadius: '4px'
+                      }}>
+                        Finalizado
+                      </span>
+                      {savedMatchId === match.id && (
+                        <span style={{
+                          marginLeft: '0.5rem',
+                          fontSize: '0.75rem',
+                          background: 'var(--accent)',
+                          color: '#fff',
+                          padding: '0.1rem 0.5rem',
+                          borderRadius: '4px',
+                          fontWeight: '600'
+                        }}>
+                          ✓ Guardado
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Editar resultado */}
+                  {editingMatch?.id === match.id ? (
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <input
+                        type="number" min="0" max="20"
+                        value={homeScore}
+                        onChange={e => { setResultError(''); setHomeScore(e.target.value) }}
+                        placeholder={match.home_team}
+                        style={{
+                          width: '70px', padding: '0.4rem', borderRadius: '6px',
+                          border: '1px solid var(--border)',
+                          background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+                          textAlign: 'center'
+                        }}
+                      />
+                      <span style={{ color: 'var(--text-muted)' }}>-</span>
+                      <input
+                        type="number" min="0" max="20"
+                        value={awayScore}
+                        onChange={e => { setResultError(''); setAwayScore(e.target.value) }}
+                        placeholder={match.away_team}
+                        style={{
+                          width: '70px', padding: '0.4rem', borderRadius: '6px',
+                          border: '1px solid var(--border)',
+                          background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+                          textAlign: 'center'
+                        }}
+                      />
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => handleSaveResult(match)}
+                        disabled={savingResult}
+                        style={{ fontSize: '0.85rem', padding: '0.4rem 0.9rem' }}
+                      >
+                        {savingResult ? 'Guardando...' : '✓ Guardar'}
+                      </button>
+                      <button
+                        className="btn"
+                        onClick={() => { setEditingMatch(null); setHomeScore(''); setAwayScore(''); setResultError('') }}
+                        style={{
+                          fontSize: '0.85rem', padding: '0.4rem 0.9rem',
+                          background: 'var(--bg-secondary)'
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                      {resultError && (
+                        <span style={{ fontSize: '0.82rem', color: 'var(--error)' }}>
+                          ⚠️ {resultError}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        setEditingMatch(match)
+                        setHomeScore(match.home_score ?? '')
+                        setAwayScore(match.away_score ?? '')
+                        setResultError('')
+                      }}
+                      style={{
+                        fontSize: '0.82rem',
+                        padding: '0.3rem 0.75rem',
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--text-secondary)'
+                      }}
+                    >
+                      {match.status === 'finished' ? '✏️ Editar resultado' : '➕ Cargar resultado'}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
-      {/* ══════════════ TAB: JUGADORES ══════════════ */}
+      {/* ══════════════════════════════════════════════════════════════════════
+          TAB: JUGADORES
+      ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'players' && (
-        <>
-          <div className="admin-summary">
-            <div className="admin-summary-chip active">
-              ✅ Activos: {activePlayers}
-            </div>
-            <div className="admin-summary-chip pending">
-              ⏳ Pendientes: {pendingPlayers}
-            </div>
-            <div className="admin-summary-chip mp">
-              💳 MercadoPago: {mpPlayers}
-            </div>
-            <div className="admin-summary-chip cash">
-              💵 Efectivo: {manualPlayers}
+        <div>
+          {/* Métricas */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+            gap: '0.75rem',
+            marginBottom: '1.25rem'
+          }}>
+            {[
+              { label: 'Total',     value: metrics.total,   color: 'var(--text-primary)' },
+              { label: '✅ Activos',  value: metrics.activos, color: '#4ade80' },
+              { label: '⏳ Pendientes', value: metrics.pending, color: '#facc15' },
+              { label: '💳 MP',      value: metrics.mp,      color: '#60a5fa' },
+              { label: '🖐 Manual',  value: metrics.manual,  color: '#c084fc' },
+            ].map(m => (
+              <div key={m.label} className="card" style={{ textAlign: 'center', padding: '0.75rem' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: m.color }}>
+                  {m.value}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {m.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Búsqueda + Filtros */}
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            <input
+              type="text"
+              placeholder="🔍 Buscar por nombre o email..."
+              value={playerSearch}
+              onChange={e => setPlayerSearch(e.target.value)}
+              style={{
+                flex: '1', minWidth: '200px',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                fontSize: '0.9rem'
+              }}
+            />
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              {[
+                { value: 'all',      label: 'Todos' },
+                { value: 'activo',   label: '✅ Activos' },
+                { value: 'pendiente',label: '⏳ Pendientes' },
+                { value: 'mp',       label: '💳 MP' },
+                { value: 'manual',   label: '🖐 Manual' },
+              ].map(f => (
+                <button
+                  key={f.value}
+                  className="btn"
+                  onClick={() => setPlayerFilter(f.value)}
+                  style={{
+                    fontSize: '0.78rem',
+                    padding: '0.3rem 0.65rem',
+                    background: playerFilter === f.value ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: playerFilter === f.value ? '#fff' : 'var(--text-secondary)',
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
-            {players.length} jugadores registrados en total
-          </p>
+          {/* Error / Loading */}
+          {errorPlayers && (
+            <div className="card" style={{ color: 'var(--error)', textAlign: 'center', padding: '2rem' }}>
+              ❌ Error al cargar jugadores: {errorPlayers}
+              <br />
+              <button className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={refetchPlayers}>
+                Reintentar
+              </button>
+            </div>
+          )}
 
-          {loadingPlayers ? (
-            <p className="loading-text">Cargando jugadores...</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {players.map(player => (
+          {loadingPlayers && !errorPlayers && (
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+              Cargando jugadores...
+            </div>
+          )}
+
+          {/* Contador de resultados */}
+          {!loadingPlayers && !errorPlayers && (
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+              Mostrando {filteredPlayers.length} de {players.length} jugadores
+            </div>
+          )}
+
+          {/* Lista de jugadores */}
+          {!loadingPlayers && !errorPlayers && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {filteredPlayers.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  No hay jugadores con ese filtro
+                </div>
+              )}
+
+              {filteredPlayers.map(player => (
                 <div
                   key={player.id}
-                  className="match-card player-row"
-                  style={{
-                    borderLeft: `4px solid ${
-                      player.is_superadmin
-                        ? '#f59e0b'           // dorado para superadmin
-                        : player.is_admin
-                          ? '#7c3aed'         // violeta para admin
-                          : player.status === 'activo'
-                            ? '#22c55e'       // verde para activo
-                            : '#6b7280'       // gris para pendiente
-                    }`
-                  }}
+                  className="card"
+                  style={{ padding: '0.85rem 1.1rem' }}
                 >
-                  {/* Info del jugador */}
-                  <div className="player-info">
-                    <div className="player-name">
-                      {player.is_superadmin ? '👑' : player.is_admin ? '⭐' : '👤'}{' '}
-                      {player.username || 'Sin nombre'}
-                    </div>
-                    <div className="player-detail">
-                      ✉️ {player.email || 'Sin email'}
-                    </div>
-                    <div className="player-detail">
-                      🏆 {player.points ?? 0} pts · Registrado:{' '}
-                      {formatDate(player.created_at)}
-                    </div>
-                    <div className="player-badges">
-                      {player.is_superadmin && (
-                        <span className="admin-badge" style={{
-                          background: '#f59e0b22',
-                          color: '#f59e0b',
-                          border: '1px solid #f59e0b44'
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.5rem'
+                  }}>
+                    {/* Info */}
+                    <div style={{ flex: 1, minWidth: '200px' }}>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        fontWeight: '600', marginBottom: '0.2rem'
+                      }}>
+                        {player.username || '(sin username)'}
+                        {player.is_superadmin && (
+                          <span style={{
+                            fontSize: '0.7rem', background: '#4c1d95',
+                            color: '#e9d5ff', padding: '0.1rem 0.4rem', borderRadius: '4px'
+                          }}>👑 SuperAdmin</span>
+                        )}
+                        {player.is_admin && !player.is_superadmin && (
+                          <span style={{
+                            fontSize: '0.7rem', background: '#1e3a5f',
+                            color: '#60a5fa', padding: '0.1rem 0.4rem', borderRadius: '4px'
+                          }}>🔧 Admin</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        {player.email}
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          padding: '0.1rem 0.4rem',
+                          borderRadius: '4px',
+                          background: player.status === 'activo' ? '#166534' : '#78350f',
+                          color: player.status === 'activo' ? '#4ade80' : '#fbbf24'
                         }}>
-                          👑 Superadmin
+                          {player.status === 'activo' ? '✅ Activo' : '⏳ Pendiente'}
                         </span>
-                      )}
-                      {player.is_admin && !player.is_superadmin && (
-                        <span className="admin-badge admin-role">
-                          ⭐ Admin
+                        {player.payment_method && (
+                          <span style={{
+                            fontSize: '0.72rem',
+                            padding: '0.1rem 0.4rem',
+                            borderRadius: '4px',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-muted)'
+                          }}>
+                            {player.payment_method === 'mp'     ? '💳 MercadoPago' :
+                             player.payment_method === 'manual' ? '🖐 Manual' :
+                             player.payment_method === 'transfer' ? '🏦 Transferencia' :
+                             player.payment_method}
+                          </span>
+                        )}
+                        <span style={{
+                          fontSize: '0.72rem',
+                          padding: '0.1rem 0.4rem',
+                          borderRadius: '4px',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--gold)'
+                        }}>
+                          ⭐ {player.points ?? 0} pts
                         </span>
-                      )}
-                      <span className={`admin-badge ${
-                        player.status === 'activo' ? 'status-active' : 'status-pending'
-                      }`}>
-                        {player.status === 'activo'
-                          ? '✅ Pago confirmado'
-                          : '⏳ Pago pendiente'}
-                      </span>
-                      {getPaymentMethodBadge(player.payment_method)}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Acciones */}
-                  <div className="player-actions">
-                    {player.status === 'pendiente' && (
-                      <button
-                        className="player-action-btn confirm"
-                        onClick={() => handleConfirmPayment(player)}
-                        disabled={confirmingPlayer === player.id}
-                      >
-                        {confirmingPlayer === player.id
-                          ? 'Confirmando...'
-                          : '💵 Confirmar pago'}
-                      </button>
-                    )}
-
-                    {/* Promover/degradar: SOLO superadmin, y no sobre sí mismo */}
-                    {isSuperAdmin && !player.is_superadmin && (
-                      <button
-                        className={`player-action-btn ${
-                          player.is_admin ? 'demote' : 'promote'
-                        }`}
-                        onClick={() => handleToggleAdmin(player)}
-                        disabled={togglingAdmin === player.id}
-                      >
-                        {togglingAdmin === player.id
-                          ? 'Actualizando...'
-                          : player.is_admin
-                            ? '⭐ Quitar Admin'
-                            : '⭐ Hacer Admin'}
-                      </button>
-                    )}
-
-                    {/* Eliminar: no se puede eliminar al superadmin */}
+                    {/* Acciones */}
                     {!player.is_superadmin && (
-                      <button
-                        className="player-action-btn delete"
-                        onClick={() => handleDeletePlayer(player)}
-                        disabled={deletingPlayer === player.id}
-                      >
-                        {deletingPlayer === player.id
-                          ? 'Eliminando...'
-                          : '🗑️ Eliminar'}
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        {/* Confirmar pago manual */}
+                        {player.status !== 'activo' && (
+                          <button
+                            className="btn"
+                            onClick={() => handleConfirmPayment(player.id)}
+                            disabled={confirmingId === player.id}
+                            style={{
+                              fontSize: '0.78rem',
+                              padding: '0.3rem 0.6rem',
+                              background: '#166534',
+                              color: '#4ade80',
+                              border: '1px solid #4ade80'
+                            }}
+                          >
+                            {confirmingId === player.id ? '...' : '✓ Confirmar pago'}
+                          </button>
+                        )}
+
+                        {/* Promover/Demote admin (solo superadmin) */}
+                        {isSuperAdmin && (
+                          <button
+                            className="btn"
+                            onClick={() => handleToggleAdmin(player)}
+                            style={{
+                              fontSize: '0.78rem',
+                              padding: '0.3rem 0.6rem',
+                              background: player.is_admin ? '#78350f' : '#1e3a5f',
+                              color: player.is_admin ? '#fbbf24' : '#60a5fa',
+                              border: `1px solid ${player.is_admin ? '#fbbf24' : '#60a5fa'}`
+                            }}
+                          >
+                            {player.is_admin ? '⬇️ Quitar admin' : '⬆️ Hacer admin'}
+                          </button>
+                        )}
+
+                        {/* Eliminar (solo superadmin) */}
+                        {isSuperAdmin && (
+                          <button
+                            className="btn btn-danger"
+                            onClick={() => handleDeleteUser(player)}
+                            style={{ fontSize: '0.78rem', padding: '0.3rem 0.6rem' }}
+                          >
+                            🗑️ Eliminar
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   )
