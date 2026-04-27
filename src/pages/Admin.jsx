@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
 export default function Admin() {
-  const { isAdmin, loading } = useAuth()
+  const { isAdmin, isSuperAdmin, loading } = useAuth()
   const navigate = useNavigate()
 
   const [activeTab, setActiveTab]     = useState('results')
@@ -15,11 +15,15 @@ export default function Admin() {
   const [editing, setEditing]         = useState({})
 
   // Jugadores
-  const [players, setPlayers]                 = useState([])
-  const [loadingPlayers, setLoadingPlayers]   = useState(false)
-  const [deletingPlayer, setDeletingPlayer]   = useState(null)
+  const [players, setPlayers]                   = useState([])
+  const [loadingPlayers, setLoadingPlayers]     = useState(false)
+  const [deletingPlayer, setDeletingPlayer]     = useState(null)
   const [confirmingPlayer, setConfirmingPlayer] = useState(null)
-  const [togglingAdmin, setTogglingAdmin]     = useState(null)
+  const [togglingAdmin, setTogglingAdmin]       = useState(null)
+
+  // Superadmin - cerrar prode
+  const [closingProde, setClosingProde] = useState(false)
+  const [prodeStatus, setProdeStatus]   = useState('open') // 'open' | 'closed'
 
   useEffect(() => {
     if (loading) return
@@ -28,6 +32,7 @@ export default function Admin() {
       return
     }
     fetchMatches()
+    if (isSuperAdmin) fetchProdeStatus()
   }, [loading, isAdmin])
 
   useEffect(() => {
@@ -50,11 +55,21 @@ export default function Admin() {
     setLoadingPlayers(true)
     const { data } = await supabase
       .from('profiles')
-      .select('id, username, email, points, status, payment_method, created_at, is_admin')
+      .select('id, username, email, points, status, payment_method, created_at, is_admin, is_superadmin')
       .order('created_at', { ascending: false })
 
     setPlayers(data || [])
     setLoadingPlayers(false)
+  }
+
+  const fetchProdeStatus = async () => {
+    const { data } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'prode_status')
+      .single()
+
+    if (data) setProdeStatus(data.value)
   }
 
   // ── Acciones sobre jugadores ───────────────────────────────────────────
@@ -111,17 +126,14 @@ export default function Admin() {
 
       if (profileError) throw new Error('Error borrando perfil: ' + profileError.message)
 
-      // Borrar de auth.users (requiere RPC con service role en Supabase)
       const { error: authError } = await supabase.rpc('delete_user', {
         user_id: player.id
       })
 
       if (authError) {
-        // No es fatal: el perfil fue borrado, solo notificar en consola
         console.warn('No se pudo borrar el usuario de auth:', authError.message)
       }
 
-      // Actualizar lista local sin refetch
       setPlayers(prev => prev.filter(p => p.id !== player.id))
 
     } catch (err) {
@@ -131,7 +143,21 @@ export default function Admin() {
     }
   }
 
+  // ── Solo SuperAdmin ────────────────────────────────────────────────────
+
   const handleToggleAdmin = async (player) => {
+    // Protección: no se puede tocar al superadmin
+    if (player.is_superadmin) {
+      alert('No podés modificar los permisos del superadministrador.')
+      return
+    }
+
+    // Solo el superadmin puede promover/degradar admins
+    if (!isSuperAdmin) {
+      alert('Solo el superadministrador puede cambiar roles.')
+      return
+    }
+
     const action = player.is_admin ? 'quitarle el rol de admin' : 'hacer admin'
     const ok = window.confirm(
       `¿Seguro que querés ${action} a "${player.username}"?`
@@ -156,6 +182,32 @@ export default function Admin() {
     }
 
     setTogglingAdmin(null)
+  }
+
+  const handleToggleProde = async () => {
+    const newStatus = prodeStatus === 'open' ? 'closed' : 'open'
+    const action    = newStatus === 'closed' ? 'CERRAR' : 'ABRIR'
+    const msg       = newStatus === 'closed'
+      ? '⚠️ ¿Cerrás el prode? Los jugadores NO podrán hacer nuevas predicciones.'
+      : '¿Abrís el prode nuevamente?'
+
+    const ok = window.confirm(msg)
+    if (!ok) return
+
+    setClosingProde(true)
+
+    const { error } = await supabase
+      .from('settings')
+      .upsert({ key: 'prode_status', value: newStatus })
+
+    if (error) {
+      alert('Error: ' + error.message)
+    } else {
+      setProdeStatus(newStatus)
+      alert(`Prode ${action === 'CERRAR' ? 'cerrado' : 'abierto'} correctamente.`)
+    }
+
+    setClosingProde(false)
   }
 
   // ── Acciones sobre resultados ──────────────────────────────────────────
@@ -230,15 +282,18 @@ export default function Admin() {
 
   // ── Helpers ────────────────────────────────────────────────────────────
 
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+ const formatDate = (dateStr) => {
+  const date = new Date(dateStr);
+  return date.toLocaleString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+};
+
 
   const getPaymentMethodBadge = (method) => {
     const styles = {
@@ -296,8 +351,73 @@ export default function Admin() {
   return (
     <div className="main-container">
       <div className="page-header">
-        <h1>⚙️ Panel de Administración</h1>
+        <h1>
+          {isSuperAdmin ? '👑 Panel Superadmin' : '⚙️ Panel de Administración'}
+        </h1>
+        {isSuperAdmin && (
+          <span style={{
+            fontSize: '0.75rem',
+            background: '#7c3aed22',
+            color: '#a78bfa',
+            padding: '0.25rem 0.75rem',
+            borderRadius: '999px',
+            border: '1px solid #7c3aed44'
+          }}>
+            Acceso total
+          </span>
+        )}
       </div>
+
+      {/* ── Banner SuperAdmin ── */}
+      {isSuperAdmin && (
+        <div style={{
+          background: '#7c3aed15',
+          border: '1px solid #7c3aed44',
+          borderRadius: '12px',
+          padding: '1rem 1.25rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.75rem'
+        }}>
+          <div>
+            <div style={{ color: '#a78bfa', fontWeight: 600, marginBottom: '0.25rem' }}>
+              🔐 Control del Prode
+            </div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              Estado actual:{' '}
+              <span style={{
+                color: prodeStatus === 'open' ? '#22c55e' : '#ef4444',
+                fontWeight: 600
+              }}>
+                {prodeStatus === 'open' ? '🟢 Abierto' : '🔴 Cerrado'}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={handleToggleProde}
+            disabled={closingProde}
+            style={{
+              background: prodeStatus === 'open' ? '#ef444422' : '#22c55e22',
+              color: prodeStatus === 'open' ? '#ef4444' : '#22c55e',
+              border: `1px solid ${prodeStatus === 'open' ? '#ef444444' : '#22c55e44'}`,
+              borderRadius: '8px',
+              padding: '0.5rem 1rem',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.9rem'
+            }}
+          >
+            {closingProde
+              ? 'Procesando...'
+              : prodeStatus === 'open'
+                ? '🔒 Cerrar Prode'
+                : '🔓 Abrir Prode'}
+          </button>
+        </div>
+      )}
 
       {/* ── Tabs ── */}
       <div className="admin-tabs">
@@ -325,7 +445,6 @@ export default function Admin() {
           {matches.map(match => (
             <div key={match.id} className="match-card">
 
-              {/* Header del partido */}
               <div className="match-header">
                 <div className="match-teams">
                   {match.home_flag && getFlagUrl(match.home_flag) && (
@@ -351,14 +470,11 @@ export default function Admin() {
                 )}
               </div>
 
-              {/* Fecha y resultado actual */}
-              <div
-                style={{
-                  fontSize: '0.8rem',
-                  color: 'var(--text-muted)',
-                  marginBottom: '0.8rem'
-                }}
-              >
+              <div style={{
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+                marginBottom: '0.8rem'
+              }}>
                 📅 {formatDate(match.match_date)}
                 {match.status === 'finished' && (
                   <span style={{ marginLeft: '1rem', color: 'var(--gold)' }}>
@@ -367,7 +483,6 @@ export default function Admin() {
                 )}
               </div>
 
-              {/* Cargar resultado (partido no finalizado) */}
               {match.status !== 'finished' && (
                 <div className="prediction-row">
                   <div className="score-input">
@@ -397,7 +512,6 @@ export default function Admin() {
                 </div>
               )}
 
-              {/* Botón corregir (partido finalizado, no en edición) */}
               {match.status === 'finished' && !editing[match.id] && (
                 <div style={{ marginTop: '0.5rem' }}>
                   <button
@@ -409,12 +523,12 @@ export default function Admin() {
                 </div>
               )}
 
-              {/* Edición de resultado ya cargado */}
               {match.status === 'finished' && editing[match.id] && (
-                <div
-                  className="prediction-row"
-                  style={{ marginTop: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}
-                >
+                <div className="prediction-row" style={{
+                  marginTop: '0.5rem',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
+                }}>
                   <div className="score-input">
                     <input
                       type="number" min="0" max="20" placeholder="0"
@@ -448,7 +562,6 @@ export default function Admin() {
                   </button>
                 </div>
               )}
-
             </div>
           ))}
         </>
@@ -457,7 +570,6 @@ export default function Admin() {
       {/* ══════════════ TAB: JUGADORES ══════════════ */}
       {activeTab === 'players' && (
         <>
-          {/* Resumen */}
           <div className="admin-summary">
             <div className="admin-summary-chip active">
               ✅ Activos: {activePlayers}
@@ -487,18 +599,20 @@ export default function Admin() {
                   className="match-card player-row"
                   style={{
                     borderLeft: `4px solid ${
-                      player.is_admin
-                        ? '#7c3aed'
-                        : player.status === 'activo'
-                          ? '#22c55e'
-                          : '#f59e0b'
+                      player.is_superadmin
+                        ? '#f59e0b'           // dorado para superadmin
+                        : player.is_admin
+                          ? '#7c3aed'         // violeta para admin
+                          : player.status === 'activo'
+                            ? '#22c55e'       // verde para activo
+                            : '#6b7280'       // gris para pendiente
                     }`
                   }}
                 >
                   {/* Info del jugador */}
                   <div className="player-info">
                     <div className="player-name">
-                      {player.is_admin ? '👑' : '👤'}{' '}
+                      {player.is_superadmin ? '👑' : player.is_admin ? '⭐' : '👤'}{' '}
                       {player.username || 'Sin nombre'}
                     </div>
                     <div className="player-detail">
@@ -509,16 +623,23 @@ export default function Admin() {
                       {formatDate(player.created_at)}
                     </div>
                     <div className="player-badges">
-                      {player.is_admin && (
-                        <span className="admin-badge admin-role">
-                          👑 Admin
+                      {player.is_superadmin && (
+                        <span className="admin-badge" style={{
+                          background: '#f59e0b22',
+                          color: '#f59e0b',
+                          border: '1px solid #f59e0b44'
+                        }}>
+                          👑 Superadmin
                         </span>
                       )}
-                      <span
-                        className={`admin-badge ${
-                          player.status === 'activo' ? 'status-active' : 'status-pending'
-                        }`}
-                      >
+                      {player.is_admin && !player.is_superadmin && (
+                        <span className="admin-badge admin-role">
+                          ⭐ Admin
+                        </span>
+                      )}
+                      <span className={`admin-badge ${
+                        player.status === 'activo' ? 'status-active' : 'status-pending'
+                      }`}>
                         {player.status === 'activo'
                           ? '✅ Pago confirmado'
                           : '⏳ Pago pendiente'}
@@ -541,29 +662,35 @@ export default function Admin() {
                       </button>
                     )}
 
-                    <button
-                      className={`player-action-btn ${
-                        player.is_admin ? 'demote' : 'promote'
-                      }`}
-                      onClick={() => handleToggleAdmin(player)}
-                      disabled={togglingAdmin === player.id}
-                    >
-                      {togglingAdmin === player.id
-                        ? 'Actualizando...'
-                        : player.is_admin
-                          ? '👑 Quitar Admin'
-                          : '⭐ Hacer Admin'}
-                    </button>
+                    {/* Promover/degradar: SOLO superadmin, y no sobre sí mismo */}
+                    {isSuperAdmin && !player.is_superadmin && (
+                      <button
+                        className={`player-action-btn ${
+                          player.is_admin ? 'demote' : 'promote'
+                        }`}
+                        onClick={() => handleToggleAdmin(player)}
+                        disabled={togglingAdmin === player.id}
+                      >
+                        {togglingAdmin === player.id
+                          ? 'Actualizando...'
+                          : player.is_admin
+                            ? '⭐ Quitar Admin'
+                            : '⭐ Hacer Admin'}
+                      </button>
+                    )}
 
-                    <button
-                      className="player-action-btn delete"
-                      onClick={() => handleDeletePlayer(player)}
-                      disabled={deletingPlayer === player.id}
-                    >
-                      {deletingPlayer === player.id
-                        ? 'Eliminando...'
-                        : '🗑️ Eliminar'}
-                    </button>
+                    {/* Eliminar: no se puede eliminar al superadmin */}
+                    {!player.is_superadmin && (
+                      <button
+                        className="player-action-btn delete"
+                        onClick={() => handleDeletePlayer(player)}
+                        disabled={deletingPlayer === player.id}
+                      >
+                        {deletingPlayer === player.id
+                          ? 'Eliminando...'
+                          : '🗑️ Eliminar'}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
