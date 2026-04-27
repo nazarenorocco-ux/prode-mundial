@@ -28,7 +28,7 @@ export default function PredictionForm({ match, existingPrediction, onSaved, for
     if (forceDisabled) return '🔒 Prode cerrado'
     if (minutesUntilMatch <= 0) return '🔒 Partido en curso'
     if (minutesUntilMatch <= 30)
-      return `🔒 Cierra en ${Math.round(minutesUntilMatch)} min`
+      return `🔒 Cerrado faltan menos de ${Math.round(minutesUntilMatch)} min para el inicio del encuentro`
     return null
   }
 
