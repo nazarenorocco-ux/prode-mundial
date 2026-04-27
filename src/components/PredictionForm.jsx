@@ -22,16 +22,23 @@ export default function PredictionForm({ match, existingPrediction, onSaved }) {
   const locked = minutesUntilMatch <= 30 || finished
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return 'Fecha por confirmar'
-    const date = new Date(dateStr)
-    if (isNaN(date.getTime())) return 'Fecha por confirmar'
-    return date.toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+  if (!dateStr) return 'Fecha por confirmar'
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return 'Fecha por confirmar'
+
+  const opciones = {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    weekday: 'short',   // lun, mar, jue...
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false        // ← fuerza formato 24hs
   }
+
+  return date.toLocaleString('es-AR', opciones)
+  // Resultado: "jue, 11/06, 16:00"
+}
 
   const getLockMessage = () => {
     if (finished) return null
