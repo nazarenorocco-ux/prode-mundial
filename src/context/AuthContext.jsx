@@ -8,7 +8,6 @@ export function AuthProvider({ children }) {
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  // Ref para evitar actualizaciones de estado en componente desmontado
   const isMounted = useRef(true)
 
   const fetchProfile = async (userId) => {
@@ -22,7 +21,6 @@ export function AuthProvider({ children }) {
       if (error) throw error
       if (isMounted.current) setIsAdmin(data?.is_admin ?? false)
     } catch {
-      // Perfil no encontrado o error de red — asumir no-admin
       if (isMounted.current) setIsAdmin(false)
     }
   }
@@ -43,12 +41,26 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     isMounted.current = true
 
-    // onAuthStateChange recibe INITIAL_SESSION como primer evento,
-    // que equivale al getSession() — lo usamos como única fuente de verdad
-    // para evitar la race condition del flag initialized.
+    // Opción B: getSession() como respaldo inmediato
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!isMounted.current) return
+
+      if (session?.user) {
+        setUser(session.user)
+        await fetchProfile(session.user.id)
+      }
+      if (isMounted.current) setLoading(false)
+    }
+
+    initAuth()
+
+    // onAuthStateChange maneja cambios posteriores (login, logout, etc.)
+    // ignoramos INITIAL_SESSION porque ya lo manejó initAuth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted.current) return
+        if (event === 'INITIAL_SESSION') return
 
         if (session?.user) {
           setUser(session.user)
@@ -57,10 +69,6 @@ export function AuthProvider({ children }) {
           setUser(null)
           setIsAdmin(false)
         }
-
-        // Loading false después del primer evento (INITIAL_SESSION)
-        // que siempre dispara al montar, con o sin sesión activa
-        if (isMounted.current) setLoading(false)
       }
     )
 
