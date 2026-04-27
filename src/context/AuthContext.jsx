@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   const isMounted  = useRef(true)
-  const hasSettled = useRef(false)  // ← evita llamar setLoading(false) más de una vez
+  const hasSettled = useRef(false)
 
   const settle = () => {
     if (!hasSettled.current && isMounted.current) {
@@ -58,14 +58,13 @@ export function AuthProvider({ children }) {
 
         if (session?.user) {
           setUser(session.user)
-          await fetchProfile(session.user.id)
+          settle()                           // ← desbloquea loading YA
+          await fetchProfile(session.user.id) // ← isAdmin llega después, no bloquea
         } else {
           setUser(null)
           setIsAdmin(false)
+          settle()                           // ← también desbloquea si no hay sesión
         }
-
-        // Resolver loading en el PRIMER evento que llegue (sea cual sea)
-        settle()
       }
     )
 
