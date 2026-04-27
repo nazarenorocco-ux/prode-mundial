@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Navbar from './components/Navbar'
 import Landing from './pages/Landing'
@@ -11,32 +11,33 @@ import PaymentSuccess from './pages/PaymentSuccess'
 import PaymentFailure from './pages/PaymentFailure'
 import PaymentPending from './pages/PaymentPending'
 
+// Rutas donde NO se muestra la Navbar
+const ROUTES_WITHOUT_NAVBAR = ['/', '/login', '/register']
+
 function LoadingScreen() {
   return (
-    <div className="main-container" style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      minHeight: '100vh' 
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '100vh',
+      background: 'var(--bg-primary, #0f172a)'
     }}>
-      <p style={{ color: 'var(--text-muted)' }}>Cargando...</p>
+      <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '1rem' }}>
+        Cargando...
+      </p>
     </div>
   )
 }
 
 function PrivateRoute({ children }) {
   const { user, loading, signingOut } = useAuth()
-  console.log('🛡️ PrivateRoute - loading:', loading, 'signingOut:', signingOut, 'user:', user?.email ?? 'null')
-  
-  // Si está en proceso de signOut, mostrar loading en vez de redirigir
   if (loading || signingOut) return <LoadingScreen />
   return user ? children : <Navigate to="/login" replace />
 }
 
 function AdminRoute({ children }) {
   const { user, loading, isAdmin, signingOut } = useAuth()
-  console.log('🛡️ AdminRoute - loading:', loading, 'signingOut:', signingOut, 'user:', user?.email ?? 'null')
-  
   if (loading || signingOut) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
   if (!isAdmin) return <Navigate to="/" replace />
@@ -45,53 +46,43 @@ function AdminRoute({ children }) {
 
 function PublicRoute({ children }) {
   const { user, loading, signingOut } = useAuth()
-  console.log('🔓 PublicRoute - loading:', loading, 'signingOut:', signingOut, 'user:', user?.email ?? 'null')
-  
   if (loading || signingOut) return <LoadingScreen />
   return user ? <Navigate to="/dashboard" replace /> : children
 }
 
 function AppContent() {
   const { signingOut } = useAuth()
+  const location = useLocation()
 
-  // Mientras hace signOut, mostrar loading global
   if (signingOut) return <LoadingScreen />
+
+  const showNavbar = !ROUTES_WITHOUT_NAVBAR.includes(location.pathname)
 
   return (
     <>
-      <Navbar />
+      {showNavbar && <Navbar />}
       <Routes>
 
         <Route path="/" element={<Landing />} />
 
         <Route path="/login" element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
+          <PublicRoute><Login /></PublicRoute>
         } />
 
         <Route path="/register" element={
-          <PublicRoute>
-            <Register />
-          </PublicRoute>
+          <PublicRoute><Register /></PublicRoute>
         } />
 
         <Route path="/dashboard" element={
-          <PrivateRoute>
-            <Dashboard />
-          </PrivateRoute>
+          <PrivateRoute><Dashboard /></PrivateRoute>
         } />
 
         <Route path="/leaderboard" element={
-          <PrivateRoute>
-            <Leaderboard />
-          </PrivateRoute>
+          <PrivateRoute><Leaderboard /></PrivateRoute>
         } />
 
         <Route path="/admin" element={
-          <AdminRoute>
-            <Admin />
-          </AdminRoute>
+          <AdminRoute><Admin /></AdminRoute>
         } />
 
         <Route path="/payment/success" element={<PaymentSuccess />} />

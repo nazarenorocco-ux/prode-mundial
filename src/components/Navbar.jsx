@@ -3,15 +3,12 @@ import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
   const { user, isAdmin, signOut, signingOut } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const navigate  = useNavigate()
+  const location  = useLocation()
 
   const handleSignOut = async () => {
-    console.log('🖱️ handleSignOut llamado')
     await signOut()
-    console.log('🖱️ signOut completado, navegando a /')
-    navigate('/')
-    console.log('🖱️ navigate ejecutado')
+    navigate('/', { replace: true })
   }
 
   const isActive = (path) => location.pathname === path ? 'active' : ''
@@ -30,23 +27,14 @@ export default function Navbar() {
       <div className="navbar-actions">
         {user ? (
           <>
-            <Link
-              to="/dashboard"
-              className={`navbar-link ${isActive('/dashboard')}`}
-            >
+            <Link to="/dashboard" className={`navbar-link ${isActive('/dashboard')}`}>
               Predicciones
             </Link>
-            <Link
-              to="/leaderboard"
-              className={`navbar-link ${isActive('/leaderboard')}`}
-            >
+            <Link to="/leaderboard" className={`navbar-link ${isActive('/leaderboard')}`}>
               Tabla
             </Link>
             {isAdmin && (
-              <Link
-                to="/admin"
-                className={`navbar-link ${isActive('/admin')}`}
-              >
+              <Link to="/admin" className={`navbar-link ${isActive('/admin')}`}>
                 Admin
               </Link>
             )}
@@ -63,10 +51,7 @@ export default function Navbar() {
           </>
         ) : (
           <>
-            <Link
-              to="/login"
-              className={`navbar-link ${isActive('/login')}`}
-            >
+            <Link to="/login" className={`navbar-link ${isActive('/login')}`}>
               Ingresar
             </Link>
             <Link to="/register" className="btn btn-primary">

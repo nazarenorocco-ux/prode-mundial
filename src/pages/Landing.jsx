@@ -15,12 +15,11 @@ const POSITION_LABELS = [
 function getNextTierInfo(activePlayers) {
   const currentTierIndex = PRIZE_TIERS.findIndex(t => activePlayers <= t.maxPlayers);
   const currentTier = PRIZE_TIERS[currentTierIndex];
-  const nextTier = PRIZE_TIERS[currentTierIndex + 1];
-
+  const nextTier    = PRIZE_TIERS[currentTierIndex + 1];
   if (!nextTier) return null;
 
-  const playersNeeded = currentTier.maxPlayers - activePlayers + 1;
-  const nextPool = (currentTier.maxPlayers + 1) * ENTRY_FEE * PRIZE_POOL_PERCENTAGE;
+  const playersNeeded  = currentTier.maxPlayers - activePlayers + 1;
+  const nextPool       = (currentTier.maxPlayers + 1) * ENTRY_FEE * PRIZE_POOL_PERCENTAGE;
 
   return {
     playersNeeded,
@@ -29,7 +28,6 @@ function getNextTierInfo(activePlayers) {
   };
 }
 
-// Formatea fecha de partido — retorna null si la fecha es inválida
 function formatMatchDate(dateStr) {
   if (!dateStr) return null;
   const date = new Date(dateStr);
@@ -45,10 +43,10 @@ function formatMatchDate(dateStr) {
 
 export default function Landing() {
   const navigate = useNavigate();
-  const [activePlayers, setActivePlayers] = useState(0);
-  const [displayCount, setDisplayCount] = useState(0);
+  const [activePlayers, setActivePlayers]   = useState(0);
+  const [displayCount, setDisplayCount]     = useState(0);
   const [upcomingMatches, setUpcomingMatches] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]               = useState(true);
 
   useEffect(() => {
     async function fetchData() {
@@ -75,34 +73,29 @@ export default function Landing() {
 
   // Contador animado
   useEffect(() => {
-    if (activePlayers === 0) {
-      setDisplayCount(0);
-      return;
-    }
+    if (activePlayers === 0) { setDisplayCount(0); return; }
 
-    let start = 0;
-    const duration = 1500;
-    const steps = 60;
-    const increment = activePlayers / steps;
-    const stepDuration = duration / steps;
+    let current      = 0;
+    const steps      = 60;
+    const increment  = activePlayers / steps;
+    const interval   = 1500 / steps;
 
     const timer = setInterval(() => {
-      start += increment;
-      if (start >= activePlayers) {
+      current += increment;
+      if (current >= activePlayers) {
         setDisplayCount(activePlayers);
         clearInterval(timer);
       } else {
-        setDisplayCount(Math.floor(start));
+        setDisplayCount(Math.floor(current));
       }
-    }, stepDuration);
+    }, interval);
 
     return () => clearInterval(timer);
   }, [activePlayers]);
 
-  // playerCount mínimo 1 para evitar división por cero en cálculo de premios
-  const playerCount = Math.max(activePlayers, 1);
+  const playerCount         = Math.max(activePlayers, 1);
   const { totalPool, prizes } = calculatePrizes(playerCount);
-  const nextTierInfo = getNextTierInfo(playerCount);
+  const nextTierInfo        = getNextTierInfo(playerCount);
 
   return (
     <div className="landing">
@@ -152,7 +145,6 @@ export default function Landing() {
         <p className="section-subtitle">
           Los premios se actualizan automáticamente con cada nuevo participante
         </p>
-
         <div className="prizes-grid">
           {prizes.map((prize, index) => (
             <div
@@ -168,7 +160,6 @@ export default function Landing() {
             </div>
           ))}
         </div>
-
         {nextTierInfo && (
           <div className="prizes-next-tier">
             🚀 Con <strong>{nextTierInfo.playersNeeded} jugadores más</strong> se suma un premio extra
