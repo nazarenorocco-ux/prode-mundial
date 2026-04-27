@@ -86,13 +86,24 @@ export default function Login() {
             />
           </div>
 
-          <button
+                    <button
             type="submit"
             className="btn btn-primary btn-full"
             disabled={loading}
           >
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
+
+          {/* NUEVO */}
+          <div style={{ textAlign: 'center', marginTop: '0.75rem' }}>
+            <Link 
+              to="/forgot-password" 
+              style={{ fontSize: '0.85rem', color: 'var(--color-accent)' }}
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
+
         </form>
 
         <div className="auth-footer">

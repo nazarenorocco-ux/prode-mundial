@@ -1,0 +1,111 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabaseClient'
+
+export default function ResetPassword() {
+  const [password, setPassword]   = useState('')
+  const [confirm, setConfirm]     = useState('')
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
+  const [success, setSuccess]     = useState(false)
+  const navigate = useNavigate()
+
+  // Supabase manda el token en el hash de la URL
+  // detectSessionFromUrl: true en supabaseClient lo procesa automáticamente
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // Sesión lista, el usuario puede cambiar su contraseña
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.')
+      return
+    }
+
+    if (password !== confirm) {
+      setError('Las contraseñas no coinciden.')
+      return
+    }
+
+    setLoading(true)
+
+    const { error: updateError } = await supabase.auth.updateUser({ password })
+
+    setLoading(false)
+
+    if (updateError) {
+      setError('No se pudo actualizar la contraseña. El link puede haber expirado.')
+      return
+    }
+
+    setSuccess(true)
+    setTimeout(() => navigate('/dashboard', { replace: true }), 3000)
+  }
+
+  if (success) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <h1 className="auth-title">✅ ¡Listo!</h1>
+          <p className="auth-subtitle">
+            Tu contraseña fue actualizada correctamente.
+          </p>
+          <p style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '1rem' }}>
+            Redirigiendo al dashboard en 3 segundos...
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        <h1 className="auth-title">🔒 Nueva contraseña</h1>
+        <p className="auth-subtitle">Elegí una contraseña nueva</p>
+
+        {error && <div className="auth-error">{error}</div>}
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Nueva contraseña</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Mínimo 6 caracteres"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Repetir contraseña</label>
+            <input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="••••••••"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="btn btn-primary btn-full"
+            disabled={loading}
+          >
+            {loading ? 'Guardando...' : 'Guardar contraseña'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}

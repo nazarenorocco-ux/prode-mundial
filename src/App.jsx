@@ -10,9 +10,11 @@ import Admin from './pages/Admin'
 import PaymentSuccess from './pages/PaymentSuccess'
 import PaymentFailure from './pages/PaymentFailure'
 import PaymentPending from './pages/PaymentPending'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 
 // Rutas donde NO se muestra la Navbar
-const ROUTES_WITHOUT_NAVBAR = ['/', '/login', '/register']
+const ROUTES_WITHOUT_NAVBAR = ['/', '/login', '/register', '/forgot-password', '/reset-password']
 
 function LoadingScreen() {
   return (
@@ -72,6 +74,12 @@ function AppContent() {
         <Route path="/register" element={
           <PublicRoute><Register /></PublicRoute>
         } />
+
+        <Route path="/forgot-password" element={
+          <PublicRoute><ForgotPassword /></PublicRoute>
+        } />
+
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route path="/dashboard" element={
           <PrivateRoute><Dashboard /></PrivateRoute>
