@@ -1,12 +1,33 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+
+const REDIRECT_SECONDS = 5
 
 export default function ForgotPassword() {
   const [email, setEmail]     = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent]       = useState(false)
   const [error, setError]     = useState('')
+  const [countdown, setCountdown] = useState(REDIRECT_SECONDS)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!sent) return
+
+    const interval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          navigate('/', { replace: true })
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [sent, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -35,11 +56,27 @@ export default function ForgotPassword() {
           <p className="auth-subtitle">
             Te mandamos un link a <strong>{email}</strong> para restablecer tu contraseña.
           </p>
-          <p style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '1rem' }}>
+          <p style={{
+            textAlign: 'center',
+            fontSize: '0.85rem',
+            color: 'var(--color-text-muted)',
+            marginTop: '1rem'
+          }}>
             Si no llega en unos minutos, revisá la carpeta de spam.
           </p>
-          <div className="auth-footer" style={{ marginTop: '1.5rem' }}>
-            <Link to="/login">Volver al inicio de sesión</Link>
+
+          {/* ✅ Countdown */}
+          <p style={{
+            textAlign: 'center',
+            fontSize: '0.85rem',
+            color: 'var(--color-text-muted)',
+            marginTop: '1.5rem'
+          }}>
+            Esta página se cerrará en <strong>{countdown}</strong> segundo{countdown !== 1 ? 's' : ''}...
+          </p>
+
+          <div className="auth-footer" style={{ marginTop: '1rem' }}>
+            <Link to="/">Volver al inicio</Link>
           </div>
         </div>
       </div>
