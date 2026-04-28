@@ -13,7 +13,6 @@ import PaymentPending from './pages/PaymentPending'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 
-// Rutas donde NO se muestra la Navbar
 const ROUTES_WITHOUT_NAVBAR = ['/', '/login', '/register', '/forgot-password', '/reset-password']
 
 function LoadingScreen() {
@@ -64,41 +63,69 @@ function AppContent() {
     <>
       {showNavbar && <Navbar />}
       <Routes>
-
         <Route path="/" element={<Landing />} />
 
-        <Route path="/login" element={
-          <PublicRoute><Login /></PublicRoute>
-        } />
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
 
-        <Route path="/register" element={
-          <PublicRoute><Register /></PublicRoute>
-        } />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          }
+        />
 
-        <Route path="/forgot-password" element={
-          <PublicRoute><ForgotPassword /></PublicRoute>
-        } />
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          }
+        />
 
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        <Route path="/dashboard" element={
-          <PrivateRoute><Dashboard /></PrivateRoute>
-        } />
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        />
 
-        <Route path="/leaderboard" element={
-          <PrivateRoute><Leaderboard /></PrivateRoute>
-        } />
+        <Route
+          path="/leaderboard"
+          element={
+            <PrivateRoute>
+              <Leaderboard />
+            </PrivateRoute>
+          }
+        />
 
-        <Route path="/admin" element={
-          <AdminRoute><Admin /></AdminRoute>
-        } />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <Admin />
+            </AdminRoute>
+          }
+        />
 
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failure" element={<PaymentFailure />} />
         <Route path="/payment/pending" element={<PaymentPending />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
-
       </Routes>
     </>
   )
