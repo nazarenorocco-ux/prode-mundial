@@ -31,7 +31,7 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password
       })
@@ -42,8 +42,19 @@ export default function Login() {
         return
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      navigate('/dashboard', { replace: true })
+      if (!data?.session) {
+        setError('No se pudo crear la sesión. Intentá nuevamente.')
+        setLoading(false)
+        return
+      }
+
+      // Fuerza resync de sesión antes de navegar
+      await supabase.auth.getSession()
+
+      // Pequeña pausa para que AuthContext tome la sesión
+      setTimeout(() => {
+        navigate('/dashboard', { replace: true })
+      }, 200)
     } catch (err) {
       setError('Error de conexión. Verificá tu internet e intentá de nuevo.')
       setLoading(false)
