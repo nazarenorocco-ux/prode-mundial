@@ -13,12 +13,15 @@ export default function ResetPassword() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('AUTH EVENT:', event)
+      console.log('SESSION:', session)
       if (event === 'PASSWORD_RECOVERY' && session) {
         setReady(true)
       }
     })
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('GET SESSION:', session)
       if (session) setReady(true)
     })
 
@@ -46,27 +49,38 @@ export default function ResetPassword() {
 
     setLoading(true)
 
-    const { error: updateError } = await supabase.auth.updateUser({ password })
+    try {
+      const { data, error: updateError } = await supabase.auth.updateUser({ password })
 
-    setLoading(false)
+      console.log('DATA:', data)
+      console.log('ERROR:', updateError)
 
-    if (updateError) {
-      // Supabase devuelve este mensaje cuando la contraseña es igual a la anterior
-      if (
-        updateError.message?.toLowerCase().includes('same password') ||
-        updateError.message?.toLowerCase().includes('different password') ||
-        updateError.code === 'same_password'
-      ) {
-        setError('La nueva contraseña debe ser diferente a la anterior.')
+      if (updateError) {
+        console.log('ERROR MESSAGE:', updateError.message)
+        console.log('ERROR CODE:', updateError.code)
+        setLoading(false)
+
+        if (
+          updateError.message?.toLowerCase().includes('same') ||
+          updateError.message?.toLowerCase().includes('different')
+        ) {
+          setError('La nueva contraseña debe ser diferente a la anterior.')
+          return
+        }
+        setError('No se pudo actualizar. El link puede haber expirado.')
         return
       }
-      setError('No se pudo actualizar la contraseña. El link puede haber expirado.')
-      return
-    }
 
-    await supabase.auth.signOut()
-    setSuccess(true)
-    setTimeout(() => navigate('/login', { replace: true }), 3000)
+      await supabase.auth.signOut()
+      setLoading(false)
+      setSuccess(true)
+      setTimeout(() => navigate('/login', { replace: true }), 3000)
+
+    } catch (err) {
+      console.log('CATCH ERROR:', err)
+      setLoading(false)
+      setError('Error inesperado. Intentá de nuevo.')
+    }
   }
 
   if (success) {
