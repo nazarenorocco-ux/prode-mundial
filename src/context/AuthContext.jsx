@@ -113,8 +113,11 @@ export function AuthProvider({ children }) {
         if (!isMounted.current) return
         if (!hasSettled.current) return
 
-        // ✅ Ignorar PASSWORD_RECOVERY → lo maneja ResetPassword.jsx
+        // ✅ Ignorar PASSWORD_RECOVERY siempre
         if (event === 'PASSWORD_RECOVERY') return
+
+        // ✅ Ignorar SIGNED_IN si hay un recovery en curso en otra pestaña
+        if (event === 'SIGNED_IN' && localStorage.getItem('recovery_in_progress') === 'true') return
 
         if (event === 'SIGNED_OUT') {
           if (isSigningOutRef.current) return

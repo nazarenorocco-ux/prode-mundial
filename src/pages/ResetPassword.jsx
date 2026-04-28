@@ -12,9 +12,10 @@ export default function ResetPassword() {
   const [ready, setReady]       = useState(false)
   const navigate = useNavigate()
 
-  // ✅ Ya no importamos signOut del contexto para evitar el LoadingScreen
-
   useEffect(() => {
+    // ✅ Marcar que hay un recovery en curso para que AuthContext no procese SIGNED_IN
+    localStorage.setItem('recovery_in_progress', 'true')
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔐 Auth event:', event, session)
@@ -27,13 +28,10 @@ export default function ResetPassword() {
           setLoading(false)
           setSuccess(true)
 
-          // ✅ Navegar primero para que el navigate no quede bloqueado
           setTimeout(() => {
             navigate('/login', { replace: true })
           }, 3000)
 
-          // ✅ SignOut directo sin pasar por el contexto
-          // → no triggerrea signingOut = true → no aparece LoadingScreen
           await supabase.auth.signOut()
         }
       }
@@ -44,7 +42,11 @@ export default function ResetPassword() {
       if (session) setReady(true)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      // ✅ Limpiar al desmontar
+      localStorage.removeItem('recovery_in_progress')
+      subscription.unsubscribe()
+    }
   }, [navigate])
 
   const handleSubmit = async (e) => {
@@ -70,8 +72,6 @@ export default function ResetPassword() {
       if (updateError) {
         setLoading(false)
 
-        // 422 es falso positivo de Supabase → la contraseña igual se cambió
-        // USER_UPDATED se dispara igual así que no mostramos error
         if (updateError.status === 422) {
           console.warn('422 falso positivo, esperando USER_UPDATED...')
           return
