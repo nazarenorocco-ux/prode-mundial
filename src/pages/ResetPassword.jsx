@@ -1,7 +1,12 @@
-// ResetPassword.jsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+
+// ✅ Se ejecuta al importar el módulo, ANTES de cualquier render
+// Esto cubre el timing entre que el link se abre y React monta el componente
+if (typeof window !== 'undefined') {
+  localStorage.setItem('recovery_in_progress', 'true')
+}
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('')
@@ -13,9 +18,6 @@ export default function ResetPassword() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // ✅ Marcar que hay un recovery en curso para que AuthContext no procese SIGNED_IN
-    localStorage.setItem('recovery_in_progress', 'true')
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔐 Auth event:', event, session)
@@ -27,6 +29,9 @@ export default function ResetPassword() {
         if (event === 'USER_UPDATED') {
           setLoading(false)
           setSuccess(true)
+
+          // ✅ Limpiar flag antes de navegar
+          localStorage.removeItem('recovery_in_progress')
 
           setTimeout(() => {
             navigate('/login', { replace: true })
@@ -43,8 +48,6 @@ export default function ResetPassword() {
     })
 
     return () => {
-      // ✅ Limpiar al desmontar
-      localStorage.removeItem('recovery_in_progress')
       subscription.unsubscribe()
     }
   }, [navigate])

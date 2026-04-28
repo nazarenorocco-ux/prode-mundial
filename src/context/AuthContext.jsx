@@ -1,9 +1,7 @@
-// AuthContext.jsx
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
-
 const SUPERADMIN_EMAIL = 'nazarenorocco@gmail.com'
 
 export function AuthProvider({ children }) {
@@ -16,6 +14,8 @@ export function AuthProvider({ children }) {
   const isMounted       = useRef(true)
   const hasSettled      = useRef(false)
   const isSigningOutRef = useRef(false)
+
+  const isRecoveryRoute = () => window.location.pathname === '/reset-password'
 
   const settle = () => {
     if (!hasSettled.current && isMounted.current) {
@@ -81,8 +81,8 @@ export function AuthProvider({ children }) {
 
         if (!isMounted.current) return
 
-        // ✅ En /reset-password no procesar la sesión de recovery
-        if (session?.user && window.location.pathname === '/reset-password') {
+        // ✅ En /reset-password nunca procesamos la sesión
+        if (isRecoveryRoute()) {
           settle()
           return
         }
@@ -113,11 +113,14 @@ export function AuthProvider({ children }) {
         if (!isMounted.current) return
         if (!hasSettled.current) return
 
+        // ✅ En /reset-password ignoramos absolutamente todo
+        if (isRecoveryRoute()) return
+
         // ✅ Ignorar PASSWORD_RECOVERY siempre
         if (event === 'PASSWORD_RECOVERY') return
 
-        // ✅ Ignorar SIGNED_IN si hay un recovery en curso en otra pestaña
-        if (event === 'SIGNED_IN' && localStorage.getItem('recovery_in_progress') === 'true') return
+        // ✅ Ignorar cualquier evento si hay recovery en curso en otra pestaña
+        if (localStorage.getItem('recovery_in_progress') === 'true') return
 
         if (event === 'SIGNED_OUT') {
           if (isSigningOutRef.current) return
