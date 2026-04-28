@@ -2,42 +2,23 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 
-if (typeof window !== 'undefined') {
-  localStorage.setItem('recovery_in_progress', 'true')
-}
-
 export default function ResetPassword() {
   const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
   const [ready, setReady] = useState(false)
+  const [success, setSuccess] = useState(false)
 
   const navigate = useNavigate()
   const handledRef = useRef(false)
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 Auth event:', event, session)
+    localStorage.setItem('recovery_in_progress', 'true')
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setReady(true)
-      }
-
-      if (event === 'USER_UPDATED' && !handledRef.current) {
-        handledRef.current = true
-        setLoading(false)
-        setSuccess(true)
-
-        try {
-          await supabase.auth.signOut({ scope: 'global' })
-        } catch (e) {
-          console.error('Error al cerrar sesión:', e)
-        } finally {
-          localStorage.removeItem('recovery_in_progress')
-          navigate('/login', { replace: true })
-        }
       }
     })
 
@@ -48,14 +29,14 @@ export default function ResetPassword() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [navigate])
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
     if (!ready) {
-      setError('El link expiró. Solicitá uno nuevo.')
+      setError('El link de recuperación no es válido o expiró.')
       return
     }
 
@@ -64,7 +45,7 @@ export default function ResetPassword() {
       return
     }
 
-    if (password !== confirm) {
+    if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden.')
       return
     }
@@ -75,8 +56,24 @@ export default function ResetPassword() {
 
     if (updateError) {
       setLoading(false)
-      setError('No se pudo actualizar. El link puede haber expirado.')
+      setError('No se pudo actualizar la contraseña.')
       return
+    }
+
+    if (handledRef.current) return
+    handledRef.current = true
+
+    setSuccess(true)
+
+    try {
+      await supabase.auth.signOut({ scope: 'global' })
+    } catch (e) {
+      console.error('Error al cerrar sesión después del reset:', e)
+    } finally {
+      localStorage.removeItem('recovery_in_progress')
+      setTimeout(() => {
+        navigate('/login', { replace: true })
+      }, 1000)
     }
   }
 
@@ -84,11 +81,8 @@ export default function ResetPassword() {
     return (
       <div className="auth-container">
         <div className="auth-card">
-          <h1 className="auth-title">✅ ¡Listo!</h1>
-          <p className="auth-subtitle">Tu contraseña fue actualizada correctamente.</p>
-          <p style={{ textAlign: 'center', marginTop: '1rem' }}>
-            Redirigiendo al login...
-          </p>
+          <h1 className="auth-title">✅ Contraseña actualizada</h1>
+          <p className="auth-subtitle">Redirigiendo al login...</p>
         </div>
       </div>
     )
@@ -98,13 +92,7 @@ export default function ResetPassword() {
     <div className="auth-container">
       <div className="auth-card">
         <h1 className="auth-title">🔒 Nueva contraseña</h1>
-        <p className="auth-subtitle">Elegí una contraseña nueva</p>
-
-        {!ready && (
-          <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-            Verificando link...
-          </div>
-        )}
+        <p className="auth-subtitle">Elegí una nueva contraseña</p>
 
         {error && <div className="auth-error">{error}</div>}
 
@@ -115,7 +103,7 @@ export default function ResetPassword() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="••••••••"
               required
             />
           </div>
@@ -124,8 +112,8 @@ export default function ResetPassword() {
             <label>Repetir contraseña</label>
             <input
               type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••"
               required
             />
@@ -134,7 +122,7 @@ export default function ResetPassword() {
           <button
             type="submit"
             className="btn btn-primary btn-full"
-            disabled={loading || !ready}
+            disabled={loading}
           >
             {loading ? 'Guardando...' : 'Guardar contraseña'}
           </button>

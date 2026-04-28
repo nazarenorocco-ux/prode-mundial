@@ -1,17 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import { useAuth } from '../context/AuthContext'
 
 function getErrorMessage(error) {
   if (!error) return ''
   const msg = error.message?.toLowerCase() ?? ''
 
-  if (msg.includes('invalid login credentials')) {
-    return 'Email o contraseña incorrectos'
-  }
-  if (msg.includes('email not confirmed')) {
-    return 'Confirmá tu email antes de ingresar. Revisá tu casilla.'
-  }
+  if (msg.includes('invalid login credentials')) return 'Email o contraseña incorrectos'
+  if (msg.includes('email not confirmed')) return 'Confirmá tu email antes de ingresar. Revisá tu casilla.'
   if (msg.includes('too many requests') || error.status === 429) {
     return 'Demasiados intentos. Esperá unos minutos antes de volver a intentar.'
   }
@@ -23,7 +20,15 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
   const navigate = useNavigate()
+  const { user, loading: authLoading } = useAuth()
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [user, authLoading, navigate])
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -48,13 +53,8 @@ export default function Login() {
         return
       }
 
-      // Fuerza resync de sesión antes de navegar
       await supabase.auth.getSession()
-
-      // Pequeña pausa para que AuthContext tome la sesión
-      setTimeout(() => {
-        navigate('/dashboard', { replace: true })
-      }, 200)
+      setLoading(false)
     } catch (err) {
       setError('Error de conexión. Verificá tu internet e intentá de nuevo.')
       setLoading(false)
