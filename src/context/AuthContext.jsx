@@ -5,24 +5,30 @@ const AuthContext = createContext(null)
 const SUPERADMIN_EMAIL = 'nazarenorocco@gmail.com'
 
 export function AuthProvider({ children }) {
-  const [user, setUser]                 = useState(null)
-  const [isAdmin, setIsAdmin]           = useState(false)
+  const [user, setUser] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
-  const [loading, setLoading]           = useState(true)
-  const [signingOut, setSigningOut]     = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [signingOut, setSigningOut] = useState(false)
 
-  const isMounted       = useRef(true)
-  const hasSettled      = useRef(false)
+  const isMounted = useRef(true)
+  const hasSettled = useRef(false)
   const isSigningOutRef = useRef(false)
 
   const isRecoveryRoute = () => window.location.pathname === '/reset-password'
 
-  const settle = () => {
+  const settle = useCallback(() => {
     if (!hasSettled.current && isMounted.current) {
       hasSettled.current = true
       setLoading(false)
     }
-  }
+  }, [])
+
+  const clearAuthState = useCallback(() => {
+    setUser(null)
+    setIsAdmin(false)
+    setIsSuperAdmin(false)
+  }, [])
 
   const fetchProfile = useCallback(async (userId, userEmail) => {
     try {
@@ -35,14 +41,14 @@ export function AuthProvider({ children }) {
       if (error) throw error
 
       if (isMounted.current) {
-        const adminFromDb      = data?.is_admin      ?? false
+        const adminFromDb = data?.is_admin ?? false
         const superAdminFromDb = data?.is_superadmin ?? false
-        const superAdmin = superAdminFromDb && (userEmail === SUPERADMIN_EMAIL)
+        const superAdmin = superAdminFromDb && userEmail === SUPERADMIN_EMAIL
 
         setIsAdmin(adminFromDb || superAdmin)
         setIsSuperAdmin(superAdmin)
       }
-    } catch {
+    } catch (e) {
       if (isMounted.current) {
         setIsAdmin(false)
         setIsSuperAdmin(false)
@@ -55,12 +61,11 @@ export function AuthProvider({ children }) {
 
     isSigningOutRef.current = true
     setSigningOut(true)
-    setUser(null)
-    setIsAdmin(false)
-    setIsSuperAdmin(false)
+    clearAuthState()
 
     try {
-      await supabase.auth.signOut()
+      localStorage.removeItem('recovery_in_progress')
+      await supabase.auth.signOut({ scope: 'global' })
     } catch (e) {
       console.error('❌ Error en signOut:', e)
     } finally {
@@ -69,10 +74,10 @@ export function AuthProvider({ children }) {
         setSigningOut(false)
       }
     }
-  }, [])
+  }, [clearAuthState])
 
   useEffect(() => {
-    isMounted.current  = true
+    isMounted.current = true
     hasSettled.current = false
 
     const initAuth = async () => {
@@ -81,8 +86,8 @@ export function AuthProvider({ children }) {
 
         if (!isMounted.current) return
 
-        // ✅ En /reset-password nunca procesamos la sesión
-        if (isRecoveryRoute()) {
+        if (isRecoveryRoute() || localStorage.getItem('recovery_in_progress') === 'true') {
+          clearAuthState()
           settle()
           return
         }
@@ -91,15 +96,11 @@ export function AuthProvider({ children }) {
           setUser(session.user)
           await fetchProfile(session.user.id, session.user.email)
         } else {
-          setUser(null)
-          setIsAdmin(false)
-          setIsSuperAdmin(false)
+          clearAuthState()
         }
-      } catch {
+      } catch (e) {
         if (isMounted.current) {
-          setUser(null)
-          setIsAdmin(false)
-          setIsSuperAdmin(false)
+          clearAuthState()
         }
       } finally {
         settle()
@@ -113,20 +114,13 @@ export function AuthProvider({ children }) {
         if (!isMounted.current) return
         if (!hasSettled.current) return
 
-        // ✅ En /reset-password ignoramos absolutamente todo
         if (isRecoveryRoute()) return
-
-        // ✅ Ignorar PASSWORD_RECOVERY siempre
         if (event === 'PASSWORD_RECOVERY') return
-
-        // ✅ Ignorar cualquier evento si hay recovery en curso en otra pestaña
         if (localStorage.getItem('recovery_in_progress') === 'true') return
 
         if (event === 'SIGNED_OUT') {
           if (isSigningOutRef.current) return
-          setUser(null)
-          setIsAdmin(false)
-          setIsSuperAdmin(false)
+          clearAuthState()
           return
         }
 
@@ -134,9 +128,7 @@ export function AuthProvider({ children }) {
           setUser(session.user)
           await fetchProfile(session.user.id, session.user.email)
         } else {
-          setUser(null)
-          setIsAdmin(false)
-          setIsSuperAdmin(false)
+          clearAuthState()
         }
       }
     )
@@ -145,17 +137,19 @@ export function AuthProvider({ children }) {
       isMounted.current = false
       subscription.unsubscribe()
     }
-  }, [fetchProfile])
+  }, [clearAuthState, fetchProfile, settle])
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      isAdmin,
-      isSuperAdmin,
-      loading,
-      signingOut,
-      signOut
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAdmin,
+        isSuperAdmin,
+        loading,
+        signingOut,
+        signOut
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

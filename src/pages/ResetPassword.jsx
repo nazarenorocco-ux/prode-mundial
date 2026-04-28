@@ -1,21 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 
-// ✅ Se ejecuta al importar el módulo, ANTES de cualquier render
-// Esto cubre el timing entre que el link se abre y React monta el componente
+// Marcamos el recovery apenas se carga el módulo
 if (typeof window !== 'undefined') {
   localStorage.setItem('recovery_in_progress', 'true')
 }
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('')
-  const [confirm, setConfirm]   = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
-  const [success, setSuccess]   = useState(false)
-  const [ready, setReady]       = useState(false)
+  const [confirm, setConfirm] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [ready, setReady] = useState(false)
+
   const navigate = useNavigate()
+  const handledRef = useRef(false)
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -24,20 +25,24 @@ export default function ResetPassword() {
 
         if (event === 'PASSWORD_RECOVERY' && session) {
           setReady(true)
+          return
         }
 
-        if (event === 'USER_UPDATED') {
+        if (event === 'USER_UPDATED' && !handledRef.current) {
+          handledRef.current = true
           setLoading(false)
           setSuccess(true)
 
-          // ✅ Limpiar flag antes de navegar
-          localStorage.removeItem('recovery_in_progress')
-
-          setTimeout(() => {
-            navigate('/login', { replace: true })
-          }, 3000)
-
-          await supabase.auth.signOut()
+          try {
+            localStorage.removeItem('recovery_in_progress')
+            await supabase.auth.signOut({ scope: 'global' })
+          } catch (e) {
+            console.error('❌ Error al cerrar sesión luego de recovery:', e)
+          } finally {
+            setTimeout(() => {
+              navigate('/login', { replace: true })
+            }, 1200)
+          }
         }
       }
     )
@@ -60,10 +65,12 @@ export default function ResetPassword() {
       setError('El link expiró. Solicitá uno nuevo.')
       return
     }
+
     if (password.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres.')
       return
     }
+
     if (password !== confirm) {
       setError('Las contraseñas no coinciden.')
       return
@@ -71,26 +78,26 @@ export default function ResetPassword() {
 
     setLoading(true)
 
-    supabase.auth.updateUser({ password }).then(({ error: updateError }) => {
-      if (updateError) {
-        setLoading(false)
+    const { error: updateError } = await supabase.auth.updateUser({ password })
 
-        if (updateError.status === 422) {
-          console.warn('422 falso positivo, esperando USER_UPDATED...')
-          return
-        }
+    if (updateError) {
+      setLoading(false)
 
-        if (
-          updateError.message?.toLowerCase().includes('same') ||
-          updateError.message?.toLowerCase().includes('different')
-        ) {
-          setError('La nueva contraseña debe ser diferente a la anterior.')
-          return
-        }
-
-        setError('No se pudo actualizar. El link puede haber expirado.')
+      if (updateError.status === 422) {
+        console.warn('422 falso positivo, esperando USER_UPDATED...')
+        return
       }
-    })
+
+      if (
+        updateError.message?.toLowerCase().includes('same') ||
+        updateError.message?.toLowerCase().includes('different')
+      ) {
+        setError('La nueva contraseña debe ser diferente a la anterior.')
+        return
+      }
+
+      setError('No se pudo actualizar. El link puede haber expirado.')
+    }
   }
 
   if (success) {
@@ -99,13 +106,15 @@ export default function ResetPassword() {
         <div className="auth-card">
           <h1 className="auth-title">✅ ¡Listo!</h1>
           <p className="auth-subtitle">Tu contraseña fue actualizada correctamente.</p>
-          <p style={{
-            textAlign: 'center',
-            fontSize: '0.85rem',
-            color: 'var(--color-text-muted)',
-            marginTop: '1rem'
-          }}>
-            Redirigiendo al login en 3 segundos...
+          <p
+            style={{
+              textAlign: 'center',
+              fontSize: '0.85rem',
+              color: 'var(--color-text-muted)',
+              marginTop: '1rem'
+            }}
+          >
+            Redirigiendo al login...
           </p>
         </div>
       </div>
@@ -119,11 +128,13 @@ export default function ResetPassword() {
         <p className="auth-subtitle">Elegí una contraseña nueva</p>
 
         {!ready && (
-          <div style={{
-            textAlign: 'center',
-            color: 'var(--color-text-muted)',
-            marginBottom: '1rem'
-          }}>
+          <div
+            style={{
+              textAlign: 'center',
+              color: 'var(--color-text-muted)',
+              marginBottom: '1rem'
+            }}
+          >
             Verificando link...
           </div>
         )}

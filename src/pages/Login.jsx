@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 
-// Mapea códigos de error de Supabase a mensajes en español
 function getErrorMessage(error) {
   if (!error) return ''
   const msg = error.message?.toLowerCase() ?? ''
@@ -20,10 +19,10 @@ function getErrorMessage(error) {
 }
 
 export default function Login() {
-  const [email, setEmail]       = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError]       = useState('')
-  const [loading, setLoading]   = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const handleLogin = async (e) => {
@@ -43,12 +42,8 @@ export default function Login() {
         return
       }
 
-      // replace: true evita volver al login con el botón atrás
+      await new Promise((resolve) => setTimeout(resolve, 100))
       navigate('/dashboard', { replace: true })
-
-      // No llamar setLoading(false) aquí:
-      // el componente se desmonta con la navegación
-
     } catch (err) {
       setError('Error de conexión. Verificá tu internet e intentá de nuevo.')
       setLoading(false)
@@ -86,7 +81,7 @@ export default function Login() {
             />
           </div>
 
-                    <button
+          <button
             type="submit"
             className="btn btn-primary btn-full"
             disabled={loading}
@@ -94,21 +89,18 @@ export default function Login() {
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
 
-          {/* NUEVO */}
           <div style={{ textAlign: 'center', marginTop: '0.75rem' }}>
-            <Link 
-              to="/forgot-password" 
+            <Link
+              to="/forgot-password"
               style={{ fontSize: '0.85rem', color: 'var(--color-accent)' }}
             >
               ¿Olvidaste tu contraseña?
             </Link>
           </div>
-
         </form>
 
         <div className="auth-footer">
-          ¿No tenés cuenta?{' '}
-          <Link to="/register">Registrate</Link>
+          ¿No tenés cuenta? <Link to="/register">Registrate</Link>
         </div>
       </div>
     </div>
