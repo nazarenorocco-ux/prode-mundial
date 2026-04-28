@@ -13,20 +13,23 @@ export default function ResetPassword() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('AUTH EVENT:', event)
-      console.log('SESSION:', session)
       if (event === 'PASSWORD_RECOVERY' && session) {
         setReady(true)
+      }
+
+      if (event === 'USER_UPDATED') {
+        setLoading(false)
+        setSuccess(true)
+        setTimeout(() => navigate('/login', { replace: true }), 3000)
       }
     })
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('GET SESSION:', session)
       if (session) setReady(true)
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -49,17 +52,10 @@ export default function ResetPassword() {
 
     setLoading(true)
 
-    try {
-      const { data, error: updateError } = await supabase.auth.updateUser({ password })
-
-      console.log('DATA:', data)
-      console.log('ERROR:', updateError)
-
+    // No hacemos await, dejamos que USER_UPDATED maneje el resultado
+    supabase.auth.updateUser({ password }).then(({ error: updateError }) => {
       if (updateError) {
-        console.log('ERROR MESSAGE:', updateError.message)
-        console.log('ERROR CODE:', updateError.code)
         setLoading(false)
-
         if (
           updateError.message?.toLowerCase().includes('same') ||
           updateError.message?.toLowerCase().includes('different')
@@ -68,19 +64,8 @@ export default function ResetPassword() {
           return
         }
         setError('No se pudo actualizar. El link puede haber expirado.')
-        return
       }
-
-      await supabase.auth.signOut()
-      setLoading(false)
-      setSuccess(true)
-      setTimeout(() => navigate('/login', { replace: true }), 3000)
-
-    } catch (err) {
-      console.log('CATCH ERROR:', err)
-      setLoading(false)
-      setError('Error inesperado. Intentá de nuevo.')
-    }
+    })
   }
 
   if (success) {
