@@ -1,17 +1,17 @@
+// AuthContext.jsx
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
 
-// Doble seguridad: hardcodeado en el frontend Y verificado contra DB
 const SUPERADMIN_EMAIL = 'nazarenorocco@gmail.com'
 
 export function AuthProvider({ children }) {
-  const [user, setUser]               = useState(null)
-  const [isAdmin, setIsAdmin]         = useState(false)
+  const [user, setUser]                 = useState(null)
+  const [isAdmin, setIsAdmin]           = useState(false)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
-  const [loading, setLoading]         = useState(true)
-  const [signingOut, setSigningOut]   = useState(false)
+  const [loading, setLoading]           = useState(true)
+  const [signingOut, setSigningOut]     = useState(false)
 
   const isMounted       = useRef(true)
   const hasSettled      = useRef(false)
@@ -37,11 +37,9 @@ export function AuthProvider({ children }) {
       if (isMounted.current) {
         const adminFromDb      = data?.is_admin      ?? false
         const superAdminFromDb = data?.is_superadmin ?? false
-
-        // Triple check: DB + email hardcodeado + ambos deben coincidir
         const superAdmin = superAdminFromDb && (userEmail === SUPERADMIN_EMAIL)
 
-        setIsAdmin(adminFromDb || superAdmin) // superadmin siempre es admin
+        setIsAdmin(adminFromDb || superAdmin)
         setIsSuperAdmin(superAdmin)
       }
     } catch {
@@ -83,6 +81,12 @@ export function AuthProvider({ children }) {
 
         if (!isMounted.current) return
 
+        // ✅ En /reset-password no procesar la sesión de recovery
+        if (session?.user && window.location.pathname === '/reset-password') {
+          settle()
+          return
+        }
+
         if (session?.user) {
           setUser(session.user)
           await fetchProfile(session.user.id, session.user.email)
@@ -109,9 +113,11 @@ export function AuthProvider({ children }) {
         if (!isMounted.current) return
         if (!hasSettled.current) return
 
+        // ✅ Ignorar PASSWORD_RECOVERY → lo maneja ResetPassword.jsx
+        if (event === 'PASSWORD_RECOVERY') return
+
         if (event === 'SIGNED_OUT') {
           if (isSigningOutRef.current) return
-          // SignOut externo (otra pestaña, token expirado)
           setUser(null)
           setIsAdmin(false)
           setIsSuperAdmin(false)
