@@ -1,8 +1,7 @@
-// ResetPassword.jsx completo
+// ResetPassword.jsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
-import { useAuth } from '../context/AuthContext'
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('')
@@ -11,32 +10,42 @@ export default function ResetPassword() {
   const [error, setError]       = useState('')
   const [success, setSuccess]   = useState(false)
   const [ready, setReady]       = useState(false)
-  const navigate  = useNavigate()
-  const { signOut } = useAuth()  // ✅ usar el signOut del contexto
+  const navigate = useNavigate()
+
+  // ✅ Ya no importamos signOut del contexto para evitar el LoadingScreen
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' && session) {
-        setReady(true)
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔐 Auth event:', event, session)
 
-      if (event === 'USER_UPDATED') {
-        setLoading(false)
-        setSuccess(true)
-        // ✅ signOut del contexto → setea isSigningOutRef = true
-        // → AuthContext maneja limpiamente → navigate a login
-        signOut().then(() => {
-          setTimeout(() => navigate('/login', { replace: true }), 3000)
-        })
+        if (event === 'PASSWORD_RECOVERY' && session) {
+          setReady(true)
+        }
+
+        if (event === 'USER_UPDATED') {
+          setLoading(false)
+          setSuccess(true)
+
+          // ✅ Navegar primero para que el navigate no quede bloqueado
+          setTimeout(() => {
+            navigate('/login', { replace: true })
+          }, 3000)
+
+          // ✅ SignOut directo sin pasar por el contexto
+          // → no triggerrea signingOut = true → no aparece LoadingScreen
+          await supabase.auth.signOut()
+        }
       }
-    })
+    )
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('📦 getSession:', session)
       if (session) setReady(true)
     })
 
     return () => subscription.unsubscribe()
-  }, [navigate, signOut])
+  }, [navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -60,6 +69,14 @@ export default function ResetPassword() {
     supabase.auth.updateUser({ password }).then(({ error: updateError }) => {
       if (updateError) {
         setLoading(false)
+
+        // 422 es falso positivo de Supabase → la contraseña igual se cambió
+        // USER_UPDATED se dispara igual así que no mostramos error
+        if (updateError.status === 422) {
+          console.warn('422 falso positivo, esperando USER_UPDATED...')
+          return
+        }
+
         if (
           updateError.message?.toLowerCase().includes('same') ||
           updateError.message?.toLowerCase().includes('different')
@@ -67,6 +84,7 @@ export default function ResetPassword() {
           setError('La nueva contraseña debe ser diferente a la anterior.')
           return
         }
+
         setError('No se pudo actualizar. El link puede haber expirado.')
       }
     })
@@ -78,7 +96,12 @@ export default function ResetPassword() {
         <div className="auth-card">
           <h1 className="auth-title">✅ ¡Listo!</h1>
           <p className="auth-subtitle">Tu contraseña fue actualizada correctamente.</p>
-          <p style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '1rem' }}>
+          <p style={{
+            textAlign: 'center',
+            fontSize: '0.85rem',
+            color: 'var(--color-text-muted)',
+            marginTop: '1rem'
+          }}>
             Redirigiendo al login en 3 segundos...
           </p>
         </div>
@@ -93,7 +116,11 @@ export default function ResetPassword() {
         <p className="auth-subtitle">Elegí una contraseña nueva</p>
 
         {!ready && (
-          <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+          <div style={{
+            textAlign: 'center',
+            color: 'var(--color-text-muted)',
+            marginBottom: '1rem'
+          }}>
             Verificando link...
           </div>
         )}
