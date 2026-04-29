@@ -55,7 +55,7 @@ function AppContent() {
   const { signingOut } = useAuth()
   const location = useLocation()
 
-  if (signingOut) return <LoadingScreen />
+ // if (signingOut) return <LoadingScreen />
 
   const showNavbar = !ROUTES_WITHOUT_NAVBAR.includes(location.pathname)
 

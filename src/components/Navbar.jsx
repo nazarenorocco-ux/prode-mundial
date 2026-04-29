@@ -7,8 +7,8 @@ export default function Navbar() {
   const location  = useLocation()
 
   const handleSignOut = async () => {
-    await signOut()
     navigate('/', { replace: true })
+    await signOut()
   }
 
   const isActive = (path) => location.pathname === path ? 'active' : ''

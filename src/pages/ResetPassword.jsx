@@ -14,6 +14,13 @@ export default function ResetPassword() {
   const handledRef = useRef(false)
 
   useEffect(() => {
+    // Detectar error en el hash (link expirado)
+    const hash = window.location.hash
+    if (hash.includes('error=access_denied') || hash.includes('error_code=otp_expired')) {
+      setError('El link de recuperación expiró. Por favor solicitá uno nuevo.')
+      return
+    }
+
     localStorage.setItem('recovery_in_progress', 'true')
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -88,6 +95,24 @@ export default function ResetPassword() {
     )
   }
 
+  // Link expirado → mostrar mensaje y botón para volver
+  if (error && !ready) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <h1 className="auth-title">⚠️ Link expirado</h1>
+          <p className="auth-subtitle">{error}</p>
+          <button
+            className="btn btn-primary btn-full"
+            onClick={() => navigate('/forgot-password', { replace: true })}
+          >
+            Solicitar nuevo link
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -122,7 +147,7 @@ export default function ResetPassword() {
           <button
             type="submit"
             className="btn btn-primary btn-full"
-            disabled={loading}
+            disabled={loading || !ready}
           >
             {loading ? 'Guardando...' : 'Guardar contraseña'}
           </button>

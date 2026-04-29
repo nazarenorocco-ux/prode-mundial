@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+// Dashboard.jsx
+
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatearFechaLarga, isPredictionLocked } from '../utils/dateUtils'
@@ -12,15 +14,18 @@ export default function Dashboard() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const hasFetched = useRef(false)
+  const currentUserId = useRef(null)
 
-  const fetchData = async () => {
+  const fetchData = async (userId) => {
     try {
       setLoading(true)
+      setError('')
 
       const [{ data: matchesData }, { data: settingsData }, { data: predsData }] = await Promise.all([
         supabase.from('matches').select('*').order('match_date', { ascending: true }),
         supabase.from('settings').select('*').eq('key', 'prode_status').maybeSingle(),
-        supabase.from('predictions').select('*').eq('user_id', user.id)
+        supabase.from('predictions').select('*').eq('user_id', userId)
       ])
 
       setMatches(matchesData || [])
@@ -41,8 +46,45 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return
-    fetchData()
+
+    // Si ya fetcheamos para este mismo usuario, no volver a cargar
+    if (hasFetched.current && currentUserId.current === user.id) return
+
+    hasFetched.current = true
+    currentUserId.current = user.id
+    fetchData(user.id)
   }, [user])
+
+  // Maneja el caso de visibilidad (cuando volvés a la pestaña)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user && hasFetched.current) {
+        // Refrescar silenciosamente sin mostrar "Cargando..."
+        refreshPredictions(user.id)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [user])
+
+  // Refresh silencioso - no toca el loading principal
+  const refreshPredictions = async (userId) => {
+    try {
+      const { data: predsData } = await supabase
+        .from('predictions')
+        .select('*')
+        .eq('user_id', userId)
+
+      const predMap = {}
+      ;(predsData || []).forEach((p) => {
+        predMap[p.match_id] = p
+      })
+      setPredictions(predMap)
+    } catch (err) {
+      console.error('Error en refresh silencioso:', err)
+    }
+  }
 
   const handleSavePrediction = async (matchId, homeScore, awayScore) => {
     try {
@@ -63,8 +105,9 @@ export default function Dashboard() {
 
       if (error) throw error
 
-      setMessage('Pronóstico guardado')
-      await fetchData()
+      setMessage('Pronóstico guardado ✅')
+      setTimeout(() => setMessage(''), 3000)
+      await refreshPredictions(user.id)
     } catch (err) {
       console.error(err)
       setError(err.message || 'No se pudo guardar la predicción')
@@ -79,7 +122,7 @@ export default function Dashboard() {
     <div className="main-container">
       <div className="page-header">
         <h1>Mi Prode</h1>
-        <p>Hola {profile?.username || user.email}</p>
+        <p>Hola {profile?.full_name || profile?.username || user.email}</p>
       </div>
 
       {prodeStatus === 'closed' && (
@@ -114,6 +157,7 @@ export default function Dashboard() {
                 <p className="locked-text">Predicción bloqueada</p>
               ) : (
                 <PredictionMiniForm
+                  key={`${match.id}-${pred?.home_score}-${pred?.away_score}`}
                   initialHome={pred?.home_score ?? ''}
                   initialAway={pred?.away_score ?? ''}
                   onSave={(home, away) => handleSavePrediction(match.id, home, away)}
@@ -134,9 +178,21 @@ function PredictionMiniForm({ initialHome, initialAway, onSave, disabled }) {
 
   return (
     <div className="prediction-mini">
-      <input type="number" min="0" max="20" value={home} onChange={(e) => setHome(e.target.value)} />
+      <input
+        type="number"
+        min="0"
+        max="20"
+        value={home}
+        onChange={(e) => setHome(e.target.value)}
+      />
       <span>-</span>
-      <input type="number" min="0" max="20" value={away} onChange={(e) => setAway(e.target.value)} />
+      <input
+        type="number"
+        min="0"
+        max="20"
+        value={away}
+        onChange={(e) => setAway(e.target.value)}
+      />
       <button
         className="btn btn-primary"
         onClick={() => onSave(home, away)}
@@ -147,5 +203,3 @@ function PredictionMiniForm({ initialHome, initialAway, onSave, disabled }) {
     </div>
   )
 }
-
-

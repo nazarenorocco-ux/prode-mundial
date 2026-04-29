@@ -1,11 +1,14 @@
+//AuthContext.jsx
+
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
-const SUPERADMIN_EMAIL = 'nazarenorocco@gmail.com'
+const SUPERADMIN_EMAIL = 'nazareno_rocco@hotmail.com'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  const [profile, setProfile] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -26,6 +29,7 @@ export function AuthProvider({ children }) {
 
   const clearAuthState = useCallback(() => {
     setUser(null)
+    setProfile(null)
     setIsAdmin(false)
     setIsSuperAdmin(false)
   }, [])
@@ -34,7 +38,7 @@ export function AuthProvider({ children }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('is_admin, is_superadmin')
+        .select('*')
         .eq('id', userId)
         .single()
 
@@ -45,11 +49,13 @@ export function AuthProvider({ children }) {
         const superAdminFromDb = data?.is_superadmin ?? false
         const superAdmin = superAdminFromDb && userEmail === SUPERADMIN_EMAIL
 
+        setProfile(data)
         setIsAdmin(adminFromDb || superAdmin)
         setIsSuperAdmin(superAdmin)
       }
     } catch (e) {
       if (isMounted.current) {
+        setProfile(null)
         setIsAdmin(false)
         setIsSuperAdmin(false)
       }
@@ -139,12 +145,21 @@ export function AuthProvider({ children }) {
     }
   }, [clearAuthState, fetchProfile, settle])
 
+  // Derivados del profile
+  const isActive = profile?.status === 'activo'
+  const isPending = profile?.status === 'pendiente'
+  const isBlocked = profile?.status === 'bloqueado'
+
   return (
     <AuthContext.Provider
       value={{
         user,
+        profile,
         isAdmin,
         isSuperAdmin,
+        isActive,
+        isPending,
+        isBlocked,
         loading,
         signingOut,
         signOut
