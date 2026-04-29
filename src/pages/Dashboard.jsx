@@ -1,207 +1,151 @@
-// src/pages/Dashboard.jsx
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
-import PredictionForm from '../components/PredictionForm'
+import { formatearFechaLarga, isPredictionLocked } from '../utils/dateUtils'
 
 export default function Dashboard() {
-  const { user } = useAuth()
-  const [matches, setMatches]         = useState([])
+  const { user, profile } = useAuth()
+  const [matches, setMatches] = useState([])
   const [predictions, setPredictions] = useState({})
-  const [loading, setLoading]         = useState(true)
-  const [error, setError]             = useState(null)
-  const [activeGroup, setActiveGroup] = useState(null)
-  const [userStatus, setUserStatus]   = useState(null)
-  const [prodeStatus, setProdeStatus] = useState('open') // ✅ nuevo estado
+  const [prodeStatus, setProdeStatus] = useState('open')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
 
-  const fetchData = useCallback(async () => {
-    if (!user?.id) return
-
+  const fetchData = async () => {
     try {
-      // ✅ Traemos perfil + prode_status en paralelo
-      const [
-        { data: profile,      error: profileError },
-        { data: settingsData, error: settingsError },
-        { data: matchesData,  error: matchesError },
-        { data: predictionsData, error: predsError }
-      ] = await Promise.all([
-        supabase.from('profiles').select('status').eq('id', user.id).single(),
-        supabase.from('settings').select('value').eq('key', 'prode_status').single(),
+      setLoading(true)
+
+      const [{ data: matchesData }, { data: settingsData }, { data: predsData }] = await Promise.all([
         supabase.from('matches').select('*').order('match_date', { ascending: true }),
+        supabase.from('settings').select('*').eq('key', 'prode_status').maybeSingle(),
         supabase.from('predictions').select('*').eq('user_id', user.id)
       ])
 
-      if (profileError) throw profileError
-      if (matchesError) throw matchesError
-      if (predsError)   throw predsError
-      // settingsError no es fatal — si falla, usamos 'open' por defecto
-
-      setUserStatus(profile?.status || 'pendiente')
-      setProdeStatus(settingsData?.value || 'open') // ✅ guardamos el estado global
-
-      const predsMap = {}
-      predictionsData?.forEach(p => {
-        predsMap[p.match_id] = p
-      })
-
       setMatches(matchesData || [])
-      setPredictions(predsMap)
+      setProdeStatus(settingsData?.value || 'open')
 
-      if (matchesData?.length > 0) {
-        setActiveGroup(prev => prev ?? (matchesData[0].group_name || 'Sin grupo'))
-      }
+      const predMap = {}
+      ;(predsData || []).forEach((p) => {
+        predMap[p.match_id] = p
+      })
+      setPredictions(predMap)
     } catch (err) {
-      console.error('Error cargando datos:', err)
-      setError('No se pudieron cargar los partidos.')
+      console.error(err)
+      setError('No se pudieron cargar los partidos')
     } finally {
       setLoading(false)
     }
-  }, [user?.id])
+  }
 
   useEffect(() => {
-    if (user?.id) {
-      fetchData()
-    } else {
-      setLoading(false)
+    if (!user) return
+    fetchData()
+  }, [user])
+
+  const handleSavePrediction = async (matchId, homeScore, awayScore) => {
+    try {
+      setSaving(true)
+      setError('')
+      setMessage('')
+
+      const match = matches.find(m => m.id === matchId)
+      if (!match) throw new Error('Partido no encontrado')
+      if (isPredictionLocked(match.match_date)) throw new Error('Este partido ya está bloqueado')
+
+      const { error } = await supabase.from('predictions').upsert({
+        user_id: user.id,
+        match_id: matchId,
+        home_score: Number(homeScore),
+        away_score: Number(awayScore)
+      }, { onConflict: 'user_id,match_id' })
+
+      if (error) throw error
+
+      setMessage('Pronóstico guardado')
+      await fetchData()
+    } catch (err) {
+      console.error(err)
+      setError(err.message || 'No se pudo guardar la predicción')
+    } finally {
+      setSaving(false)
     }
-  }, [fetchData, user?.id])
-
-  // ── Cálculo de puntos ─────────────────────────────────────────────────
-  const finishedMatches = matches.filter(m => m.status === 'finished')
-
-  const totalPoints = finishedMatches.reduce(
-    (sum, m) => sum + (predictions[m.id]?.points ?? 0),
-    0
-  )
-  const exactCount = finishedMatches.filter(
-    m => predictions[m.id]?.points === 3
-  ).length
-  const resultCount = finishedMatches.filter(
-    m => predictions[m.id]?.points === 1
-  ).length
-  const missCount = finishedMatches.filter(
-    m => predictions[m.id] != null && predictions[m.id].points === 0
-  ).length
-  const playedCount = finishedMatches.length
-  // ─────────────────────────────────────────────────────────────────────
-
-  const groupedMatches = matches.reduce((acc, match) => {
-    const group = match.group_name || 'Sin grupo'
-    if (!acc[group]) acc[group] = []
-    acc[group].push(match)
-    return acc
-  }, {})
-
-  const groups = Object.keys(groupedMatches).sort()
-
-  // ── Loading / Error ───────────────────────────────────────────────────
-  if (loading) return (
-    <div className="main-container">
-      <p className="loading-text">Cargando partidos...</p>
-    </div>
-  )
-
-  if (error) return (
-    <div className="main-container">
-      <p className="error-text">{error}</p>
-    </div>
-  )
-  // ─────────────────────────────────────────────────────────────────────
-
-  if (userStatus === 'pendiente') {
-    return (
-      <div className="main-container">
-        <div className="page-header">
-          <h1>🏆 Mis Predicciones</h1>
-        </div>
-        <div className="match-card pending-card">
-          <div className="pending-icon">🔒</div>
-          <h2 className="pending-title">Pago pendiente de confirmación</h2>
-          <p className="pending-desc">
-            Tu pago está siendo verificado. Una vez confirmado vas a poder
-            cargar tus predicciones.
-          </p>
-          <p className="pending-note">
-            Si pagaste por transferencia, enviá el comprobante por WhatsApp
-            y un administrador confirmará tu pago a la brevedad.
-          </p>
-        </div>
-      </div>
-    )
   }
+
+  if (loading) return <div className="main-container">Cargando...</div>
 
   return (
     <div className="main-container">
       <div className="page-header">
-        <h1>🏆 Mis Predicciones</h1>
-        <p>Ingresá el resultado que creés que va a salir en cada partido</p>
+        <h1>Mi Prode</h1>
+        <p>Hola {profile?.username || user.email}</p>
       </div>
 
-      {/* ✅ Banner prode cerrado */}
       {prodeStatus === 'closed' && (
-        <div className="match-card" style={{
-          background: 'rgba(239,68,68,0.1)',
-          border: '1px solid var(--error)',
-          textAlign: 'center',
-          marginBottom: '1.5rem'
-        }}>
-          <p style={{ color: 'var(--error)', fontWeight: '700', fontSize: '1rem', margin: 0 }}>
-            🔒 El prode está cerrado temporalmente. No se pueden cargar predicciones.
-          </p>
+        <div className="auth-error">
+          El prode está cerrado temporalmente.
         </div>
       )}
 
-      {/* ── Banner de puntos ── */}
-      {finishedMatches.length > 0 && (
-        <div className="points-summary-banner">
-          <div className="points-summary-main">
-            <span className="points-summary-label">Mis puntos</span>
-            <span className="points-summary-total">{totalPoints} pts</span>
-          </div>
-          <div className="points-summary-stats">
-            <span className="stat-chip stat-exact">⚽ {exactCount} exactos</span>
-            <span className="stat-chip stat-result">✓ {resultCount} correctos</span>
-            <span className="stat-chip stat-miss">✗ {missCount} fallados</span>
-            <span className="stat-chip stat-played">📋 {playedCount} jugados</span>
-          </div>
-        </div>
-      )}
+      {error && <div className="auth-error">{error}</div>}
+      {message && <div className="auth-success">{message}</div>}
 
-      {/* ── Tabs de grupos ── */}
-      {groups.length > 0 && (
-        <div className="group-tabs">
-          {groups.map(group => (
-            <button
-              key={group}
-              className={`group-tab ${activeGroup === group ? 'active' : ''}`}
-              onClick={() => setActiveGroup(group)}
-            >
-              Grupo {group}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ── Partidos del grupo activo ── */}
-      <div className="group-matches">
-        {activeGroup && groupedMatches[activeGroup]?.map(match => (
-          <PredictionForm
-            key={match.id}
-            match={match}
-            existingPrediction={predictions[match.id]}
-            onSaved={fetchData}
-            // ✅ si el prode está cerrado, forzamos lock en todos los partidos
-            forceDisabled={prodeStatus === 'closed'}
-          />
-        ))}
+      <div className="points-banner">
+        <strong>Puntaje:</strong> 3 puntos por exacto, 1 por resultado correcto.
       </div>
 
-      {/* ── Empty state ── */}
-      {matches.length === 0 && (
-        <div className="empty-state">
-          <p>⚽ Aún no hay partidos cargados</p>
-        </div>
-      )}
+      <div className="matches-grid">
+        {matches.map((match) => {
+          const pred = predictions[match.id]
+          const locked = isPredictionLocked(match.match_date) || prodeStatus === 'closed'
+
+          return (
+            <div key={match.id} className="match-card">
+              <h3>{match.home_team} vs {match.away_team}</h3>
+              <p>{formatearFechaLarga(match.match_date)}</p>
+              <p>Grupo {match.group_name}</p>
+
+              {match.status === 'finished' && (
+                <p>Resultado: {match.home_score} - {match.away_score}</p>
+              )}
+
+              {locked ? (
+                <p className="locked-text">Predicción bloqueada</p>
+              ) : (
+                <PredictionMiniForm
+                  initialHome={pred?.home_score ?? ''}
+                  initialAway={pred?.away_score ?? ''}
+                  onSave={(home, away) => handleSavePrediction(match.id, home, away)}
+                  disabled={saving}
+                />
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
+
+function PredictionMiniForm({ initialHome, initialAway, onSave, disabled }) {
+  const [home, setHome] = useState(initialHome)
+  const [away, setAway] = useState(initialAway)
+
+  return (
+    <div className="prediction-mini">
+      <input type="number" min="0" max="20" value={home} onChange={(e) => setHome(e.target.value)} />
+      <span>-</span>
+      <input type="number" min="0" max="20" value={away} onChange={(e) => setAway(e.target.value)} />
+      <button
+        className="btn btn-primary"
+        onClick={() => onSave(home, away)}
+        disabled={disabled}
+      >
+        Guardar
+      </button>
+    </div>
+  )
+}
+
+
