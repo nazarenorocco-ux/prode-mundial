@@ -8,24 +8,32 @@ export const toArgentinaDate = (date) => {
   );
 };
 
-export const formatearFecha = (fecha) => {
-  if (!fecha) return "";
-
-  return new Intl.DateTimeFormat("es-AR", {
-    timeZone: TIME_ZONE,
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(fecha));
-};
-
 export const formatearFechaLarga = (fecha) => {
   if (!fecha) return "";
 
   return new Intl.DateTimeFormat("es-AR", {
     timeZone: TIME_ZONE,
-    dateStyle: "long",
-    timeStyle: "short",
-  }).format(new Date(fecha));
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(fecha)) + "hs";
+};
+
+export const formatearFecha = (fecha) => {
+  if (!fecha) return "";
+
+  return new Intl.DateTimeFormat("es-AR", {
+    timeZone: TIME_ZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(fecha)) + "hs";
 };
 
 export const isPredictionLocked = (matchDate) => {
