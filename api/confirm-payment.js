@@ -69,7 +69,7 @@ export default async function handler(req, res) {
       .from('profiles')
       .update({
         status: 'activo',
-        payment_method: 'mercadopago'
+        payment_method: 'mp'
       })
       .eq('id', userId)
 

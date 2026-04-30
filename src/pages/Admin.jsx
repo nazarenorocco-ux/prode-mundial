@@ -132,15 +132,15 @@ function MatchRow({ match, editingMatch, homeScore, awayScore, savingResult,
               <img
                 src={getFlagUrl(match.home_flag)}
                 alt={match.home_team}
-                style={{ width: '22px', height: '16px', objectFit: 'cover', borderRadius: '2px' }}
+                style={{ width: '52px', height: '36px', objectFit: 'cover', borderRadius: '2px' }}
               />
             )}
-            <span style={{ fontWeight: '700', fontSize: '0.95rem' }}>
+            <span style={{ fontWeight: '700', fontSize: '1.2rem' }}>
               {match.home_team}
             </span>
           </div>
 
-          <span style={{ color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.85rem' }}>
+          <span style={{ color: 'var(--text-muted)', fontWeight: '600', fontSize: '1rem' }}>
             vs
           </span>
 
@@ -150,10 +150,10 @@ function MatchRow({ match, editingMatch, homeScore, awayScore, savingResult,
               <img
                 src={getFlagUrl(match.away_flag)}
                 alt={match.away_team}
-                style={{ width: '22px', height: '16px', objectFit: 'cover', borderRadius: '2px' }}
+                style={{ width: '52px', height: '36px', objectFit: 'cover', borderRadius: '2px' }}
               />
             )}
-            <span style={{ fontWeight: '700', fontSize: '0.95rem' }}>
+            <span style={{ fontWeight: '700', fontSize: '1.2rem' }}>
               {match.away_team}
             </span>
           </div>
@@ -161,7 +161,7 @@ function MatchRow({ match, editingMatch, homeScore, awayScore, savingResult,
           {/* Badge grupo */}
           {match.group_name && (
             <span style={{
-              fontSize: '0.72rem',
+              fontSize: '1rem',
               color: 'var(--text-muted)',
               background: 'var(--bg-secondary)',
               padding: '0.1rem 0.4rem',
@@ -175,7 +175,7 @@ function MatchRow({ match, editingMatch, homeScore, awayScore, savingResult,
 
         {/* Fecha + botón editar (cuando no está editando) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: '1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
             📅 {formatearFechaLarga(match.match_date)}
           </div>
           {!isEditing && (
@@ -183,7 +183,7 @@ function MatchRow({ match, editingMatch, homeScore, awayScore, savingResult,
               className="btn"
               onClick={() => onEdit(match)}
               style={{
-                fontSize: '0.78rem',
+                fontSize: '0.50rem',
                 padding: '0.25rem 0.6rem',
                 background: 'var(--bg-secondary)',
                 color: 'var(--text-secondary)',
@@ -474,12 +474,13 @@ export default function Admin() {
     refetchMatches()
   }
 
-  // ── Confirmar pago manual ────────────────────────────────────────────────────
-  const handleConfirmPayment = async (playerId) => {
+  // ── Confirmar pago ───────────────────────────────────────────────────────────
+  // CAMBIO: recibe 'method' como parámetro ('transferencia' o 'efectivo')
+  const handleConfirmPayment = async (playerId, method) => {
     setConfirmingId(playerId)
     const { error } = await supabase
       .from('profiles')
-      .update({ status: 'activo', payment_method: 'manual' })
+      .update({ status: 'activo', payment_method: method })
       .eq('id', playerId)
     setConfirmingId(null)
     if (!error) refetchPlayers()
@@ -526,26 +527,30 @@ export default function Admin() {
   })
 
   // ── Filtros de jugadores ─────────────────────────────────────────────────────
+  // CAMBIO: eliminado 'manual', agregado 'transferencia' y 'efectivo'
   const filteredPlayers = players.filter(p => {
     const matchesSearch =
       p.username?.toLowerCase().includes(playerSearch.toLowerCase()) ||
       p.email?.toLowerCase().includes(playerSearch.toLowerCase())
     const matchesFilter =
       playerFilter === 'all' ||
-      (playerFilter === 'activo'    && p.status === 'activo')    ||
-      (playerFilter === 'pendiente' && p.status === 'pendiente') ||
-      (playerFilter === 'mp'        && p.payment_method === 'mp') ||
-      (playerFilter === 'manual'    && p.payment_method === 'manual')
+      (playerFilter === 'activo'        && p.status === 'activo')                    ||
+      (playerFilter === 'pendiente'     && p.status === 'pendiente')                 ||
+      (playerFilter === 'mp'            && p.payment_method === 'mp')                ||
+      (playerFilter === 'transferencia' && p.payment_method === 'transferencia')     ||
+      (playerFilter === 'efectivo'      && p.payment_method === 'efectivo')
     return matchesSearch && matchesFilter
   })
 
   // ── Métricas jugadores ───────────────────────────────────────────────────────
+  // CAMBIO: eliminado 'manual', agregado 'transferencia' y 'efectivo'
   const metrics = {
-    total:   players.length,
-    activos: players.filter(p => p.status === 'activo').length,
-    pending: players.filter(p => p.status === 'pendiente').length,
-    mp:      players.filter(p => p.payment_method === 'mp').length,
-    manual:  players.filter(p => p.payment_method === 'manual').length,
+    total:         players.length,
+    activos:       players.filter(p => p.status === 'activo').length,
+    pending:       players.filter(p => p.status === 'pendiente').length,
+    mp:            players.filter(p => p.payment_method === 'mp').length,
+    transferencia: players.filter(p => p.payment_method === 'transferencia').length,
+    efectivo:      players.filter(p => p.payment_method === 'efectivo').length,
   }
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -666,7 +671,7 @@ export default function Admin() {
                   fontSize: '0.8rem',
                   padding: '0.3rem 0.75rem',
                   background: matchFilter === f.value ? 'var(--accent)' : 'var(--bg-secondary)',
-                  color: matchFilter === f.value ? '#fff' : 'var(--text-secondary)',
+                  color: matchFilter === f.value ? '#f4e7e7' : 'var(--text-secondary)',
                 }}
               >
                 {f.label}
@@ -758,6 +763,7 @@ export default function Admin() {
         <div>
 
           {/* Métricas */}
+          {/* CAMBIO: eliminado 'Manual', agregado 'Transferencia' y 'Efectivo' */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
@@ -765,11 +771,12 @@ export default function Admin() {
             marginBottom: '1.25rem'
           }}>
             {[
-              { label: 'Total',        value: metrics.total,   color: 'var(--text-primary)' },
-              { label: '✅ Activos',    value: metrics.activos, color: '#4ade80' },
-              { label: '⏳ Pendientes', value: metrics.pending, color: '#facc15' },
-              { label: '💳 MP',         value: metrics.mp,      color: '#60a5fa' },
-              { label: '🖐 Manual',     value: metrics.manual,  color: '#c084fc' },
+              { label: 'Total',            value: metrics.total,         color: 'var(--text-primary)' },
+              { label: '✅ Activos',        value: metrics.activos,       color: '#4ade80' },
+              { label: '⏳ Pendientes',     value: metrics.pending,       color: '#facc15' },
+              { label: '💳 MP',             value: metrics.mp,            color: '#60a5fa' },
+              { label: '🏦 Transferencia',  value: metrics.transferencia, color: '#c084fc' },
+              { label: '💵 Efectivo',       value: metrics.efectivo,      color: '#34d399' },
             ].map(m => (
               <div key={m.label} className="card" style={{ textAlign: 'center', padding: '0.75rem' }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: m.color }}>
@@ -783,6 +790,7 @@ export default function Admin() {
           </div>
 
           {/* Búsqueda + Filtros */}
+          {/* CAMBIO: eliminado filtro 'Manual', agregados 'Transferencia' y 'Efectivo' */}
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
             <input
               type="text"
@@ -801,11 +809,12 @@ export default function Admin() {
             />
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
               {[
-                { value: 'all',       label: 'Todos' },
-                { value: 'activo',    label: '✅ Activos' },
-                { value: 'pendiente', label: '⏳ Pendientes' },
-                { value: 'mp',        label: '💳 MP' },
-                { value: 'manual',    label: '🖐 Manual' },
+                { value: 'all',           label: 'Todos' },
+                { value: 'activo',        label: '✅ Activos' },
+                { value: 'pendiente',     label: '⏳ Pendientes' },
+                { value: 'mp',            label: '💳 MP' },
+                { value: 'transferencia', label: '🏦 Transferencia' },
+                { value: 'efectivo',      label: '💵 Efectivo' },
               ].map(f => (
                 <button
                   key={f.value}
@@ -908,9 +917,10 @@ export default function Admin() {
                             background: 'var(--bg-secondary)',
                             color: 'var(--text-muted)'
                           }}>
-                            {player.payment_method === 'mp'       ? '💳 MercadoPago'  :
-                             player.payment_method === 'manual'   ? '🖐 Manual'       :
-                             player.payment_method === 'transfer' ? '🏦 Transferencia':
+                            {/* CAMBIO: eliminado 'manual', agregados 'transferencia' y 'efectivo' */}
+                            {player.payment_method === 'mp'            ? '💳 MercadoPago'   :
+                             player.payment_method === 'transferencia' ? '🏦 Transferencia' :
+                             player.payment_method === 'efectivo'      ? '💵 Efectivo'      :
                              player.payment_method}
                           </span>
                         )}
@@ -930,21 +940,38 @@ export default function Admin() {
                     {!player.is_superadmin && (
                       <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
 
+                        {/* CAMBIO: reemplazado botón único por dos botones de método */}
                         {player.status !== 'activo' && (
-                          <button
-                            className="btn"
-                            onClick={() => handleConfirmPayment(player.id)}
-                            disabled={confirmingId === player.id}
-                            style={{
-                              fontSize: '0.78rem',
-                              padding: '0.3rem 0.6rem',
-                              background: '#166534',
-                              color: '#4ade80',
-                              border: '1px solid #4ade80'
-                            }}
-                          >
-                            {confirmingId === player.id ? '...' : '✓ Confirmar pago'}
-                          </button>
+                          <>
+                            <button
+                              className="btn"
+                              onClick={() => handleConfirmPayment(player.id, 'transferencia')}
+                              disabled={confirmingId === player.id}
+                              style={{
+                                fontSize: '0.78rem',
+                                padding: '0.3rem 0.6rem',
+                                background: '#1e3a5f',
+                                color: '#60a5fa',
+                                border: '1px solid #60a5fa'
+                              }}
+                            >
+                              {confirmingId === player.id ? '...' : '🏦 Transferencia'}
+                            </button>
+                            <button
+                              className="btn"
+                              onClick={() => handleConfirmPayment(player.id, 'efectivo')}
+                              disabled={confirmingId === player.id}
+                              style={{
+                                fontSize: '0.78rem',
+                                padding: '0.3rem 0.6rem',
+                                background: '#166534',
+                                color: '#4ade80',
+                                border: '1px solid #4ade80'
+                              }}
+                            >
+                              {confirmingId === player.id ? '...' : '💵 Efectivo'}
+                            </button>
+                          </>
                         )}
 
                         {isSuperAdmin && (

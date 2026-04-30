@@ -27,6 +27,8 @@ function StatsCard({ profile, predictions, matches, ranking }) {
   const exactos = myPreds.filter(p => p.points === 3).length
   const resultados = myPreds.filter(p => p.points === 1).length
   const totalPts = profile?.points ?? 0
+  const sinPuntos = finishedMatches.filter(m => {const pred = predictions[m.id]
+    return !pred || pred.points === 0}).length
 
   return (
     <div style={{
@@ -34,28 +36,18 @@ function StatsCard({ profile, predictions, matches, ranking }) {
       border: '1px solid #0f3460',
       borderRadius: '16px',
       padding: '1.25rem 1.5rem',
-      marginBottom: '1.5rem',
+      marginBottom: '1rem',
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
       gap: '1rem',
     }}>
       {/* Puntos */}
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '2rem', fontWeight: '800', color: '#facc15', lineHeight: 1 }}>
+        <div style={{ fontSize: '5rem', fontWeight: '800', color: '#facc15', lineHeight: 1 }}>
           {totalPts}
         </div>
-        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+        <div style={{ fontSize: '2rem', color: '#94a3b8', marginTop: '0.25rem' }}>
           Puntos totales
-        </div>
-      </div>
-
-      {/* Puesto */}
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '2rem', fontWeight: '800', color: '#60a5fa', lineHeight: 1 }}>
-          {ranking ? `#${ranking}` : '-'}
-        </div>
-        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-          Puesto
         </div>
       </div>
 
@@ -71,21 +63,41 @@ function StatsCard({ profile, predictions, matches, ranking }) {
 
       {/* Resultados */}
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '2rem', fontWeight: '800', color: '#a78bfa', lineHeight: 1 }}>
+        <div style={{ fontSize: '2rem', fontWeight: '800', color: '#f5fd53', lineHeight: 1 }}>
           {resultados}
         </div>
         <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-          Resultados ✓
+          Correctos ✓
+        </div>
+      </div>
+
+       {/* Sin Puntos */}
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '2rem', fontWeight: '800', color: '#fd1e35', lineHeight: 1 }}>
+          {sinPuntos}
+        </div>
+        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+          Sin Puntos ✗
         </div>
       </div>
 
       {/* Predicciones cargadas */}
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '2rem', fontWeight: '800', color: '#f97316', lineHeight: 1 }}>
+        <div style={{ fontSize: '2rem', fontWeight: '800', color: '#cd5da6', lineHeight: 1 }}>
           {Object.keys(predictions).length}
         </div>
         <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>
           Pronósticos
+        </div>
+      </div>
+
+      {/* Puesto */}
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '5rem', fontWeight: '800', color: '#60a5fa', lineHeight: 1 }}>
+          {ranking ? `#${ranking}` : '-'}
+        </div>
+        <div style={{ fontSize: '2rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+          Puesto
         </div>
       </div>
     </div>
@@ -121,7 +133,7 @@ function MatchCard({ match, pred, locked, saving, prodeStatus, onSave, saveCount
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {match.group_name && (
           <span style={{
-            fontSize: '0.7rem',
+            fontSize: '1.1rem',
             background: 'var(--bg-secondary)',
             color: 'var(--text-muted)',
             padding: '0.15rem 0.5rem',
@@ -160,10 +172,10 @@ function MatchCard({ match, pred, locked, saving, prodeStatus, onSave, saveCount
             <img
               src={match.home_flag.trim()}
               alt={match.home_team}
-              style={{ width: '40px', height: '28px', objectFit: 'cover', borderRadius: '3px' }}
+              style={{ width: '52px', height: '36px', objectFit: 'cover', borderRadius: '3px' }}
             />
           )}
-          <span style={{ fontSize: '0.82rem', fontWeight: '700', textAlign: 'center' }}>
+          <span style={{ fontSize: '1rem', fontWeight: '700', textAlign: 'center' }}>
             {match.home_team}
           </span>
         </div>
@@ -176,7 +188,7 @@ function MatchCard({ match, pred, locked, saving, prodeStatus, onSave, saveCount
               borderRadius: '8px',
               padding: '0.3rem 0.75rem',
               fontWeight: '800',
-              fontSize: '1.3rem',
+              fontSize: '1.6rem',
               letterSpacing: '0.1em',
               color: 'var(--text-primary)'
             }}>
@@ -201,10 +213,10 @@ function MatchCard({ match, pred, locked, saving, prodeStatus, onSave, saveCount
             <img
               src={match.away_flag.trim()}
               alt={match.away_team}
-              style={{ width: '40px', height: '28px', objectFit: 'cover', borderRadius: '3px' }}
+              style={{ width: '52px', height: '36px', objectFit: 'cover', borderRadius: '3px' }}
             />
           )}
-          <span style={{ fontSize: '0.82rem', fontWeight: '700', textAlign: 'center' }}>
+          <span style={{ fontSize: '1rem', fontWeight: '700', textAlign: 'center' }}>
             {match.away_team}
           </span>
         </div>
@@ -533,12 +545,12 @@ export default function Dashboard() {
         display: 'flex',
         gap: '1rem',
         flexWrap: 'wrap',
-        fontSize: '0.78rem',
+        fontSize: '1rem',
         color: 'var(--text-muted)'
       }}>
         <span>📋 Sistema de puntos:</span>
         <span style={{ color: '#4ade80' }}>⭐ Resultado exacto = <strong>3 pts</strong></span>
-        <span style={{ color: '#60a5fa' }}>✓ Ganador correcto = <strong>1 pt</strong></span>
+        <span style={{ color: '#f0e766' }}>✓ Ganador correcto = <strong>1 pt</strong></span>
         <span style={{ color: '#f87171' }}>✗ Incorrecto = <strong>0 pts</strong></span>
       </div>
 
@@ -547,7 +559,7 @@ export default function Dashboard() {
         {[
           { value: 'all',      label: 'Todos' },
           { value: 'upcoming', label: '🕐 Pendientes' },
-          { value: 'finished', label: '✅ Finalizados' },
+          { value: 'finished', label: '✅ Finalizados'},
           ...groups.map(g => ({ value: g, label: `Grupo ${g}` }))
         ].map(f => (
           <button
@@ -555,11 +567,11 @@ export default function Dashboard() {
             className="btn"
             onClick={() => setMatchFilter(f.value)}
             style={{
-              fontSize: '0.8rem',
+              fontSize: 'rem',
               padding: '0.3rem 0.75rem',
-              background: matchFilter === f.value ? 'var(--accent)' : 'var(--bg-secondary)',
-              color: matchFilter === f.value ? '#fff' : 'var(--text-secondary)',
-              fontWeight: matchFilter === f.value ? '700' : '400'
+              background: matchFilter === f.value ? '#9a8fed' : 'var(--bg-secondary)',
+              color: matchFilter === f.value ? '#f2f1fc' : 'var(--text-secondary)',
+              fontWeight: matchFilter === f.value ? '700' : '400',background:'#4d3e3e',
             }}
           >
             {f.label}
