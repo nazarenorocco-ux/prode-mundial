@@ -206,7 +206,7 @@ function StepRegisterForm({ paymentMethod, onBack }) {
 
       if (profileError) throw profileError
 
-      if (paymentMethod === 'mp') {
+       if (isMP) {   
         const response = await fetch('/api/create-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -224,10 +224,10 @@ function StepRegisterForm({ paymentMethod, onBack }) {
 
         window.location.href = paymentData.init_point
         return
-      }
+      }else {
 
       navigate('/dashboard', { replace: true })
-
+      }     
     } catch (err) {
       setError(err.message || 'Ocurrió un error. Intentá de nuevo.')
       setLoading(false)
