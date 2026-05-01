@@ -176,7 +176,7 @@ function StepRegisterForm({ paymentMethod, onBack }) {
     return null
   }
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
   e.preventDefault()
   setError('')
 
@@ -189,7 +189,9 @@ function StepRegisterForm({ paymentMethod, onBack }) {
   const KNOCKOUT_ID = '01030879-760e-4fe3-b329-7c09c623cc58'
 
   try {
-    // 1. Crear usuario en Auth
+    // 1. Crear usuario en Auth (signOut previo por si hay sesión huérfana)
+    await supabase.auth.signOut()
+
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -198,7 +200,7 @@ function StepRegisterForm({ paymentMethod, onBack }) {
     if (signUpError) throw signUpError
     if (!data.user) throw new Error('No se pudo crear el usuario')
 
-    // 2. Crear perfil con status en inglés
+    // 2. Crear perfil
     const { error: profileError } = await supabase
       .from('profiles')
       .upsert({
@@ -211,7 +213,7 @@ function StepRegisterForm({ paymentMethod, onBack }) {
 
     if (profileError) throw profileError
 
-    // 3. Insertar competition_entries para ambas competencias
+    // 3. Insertar competition_entries
     const { error: entriesError } = await supabase
       .from('competition_entries')
       .insert([
@@ -231,8 +233,8 @@ function StepRegisterForm({ paymentMethod, onBack }) {
 
     if (entriesError) throw entriesError
 
-    // 4. Redirigir según método de pago
-    if (isMP) {
+    // 4. Redirigir
+    if (paymentMethod === 'mp') {
       const response = await fetch('/api/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -244,11 +246,11 @@ function StepRegisterForm({ paymentMethod, onBack }) {
       const paymentData = await response.json()
       if (!paymentData.init_point) throw new Error('No se recibió el link de pago de MercadoPago')
 
+      // Salir completamente de la app → evita conflicto con AuthContext
       window.location.href = paymentData.init_point
-      return
     } else {
-      // Transfer o efectivo → pending
-      navigate('/payment/pending', { replace: true })
+      // Transfer: redirigir fuera del router para forzar reload limpio
+      window.location.href = '/payment/pending'
     }
 
   } catch (err) {
