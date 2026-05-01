@@ -12,6 +12,8 @@ import PaymentFailure from './pages/PaymentFailure'
 import PaymentPending from './pages/PaymentPending'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+import Knockout from './pages/Knockout'        
+import KnockoutAdmin from './pages/KnockoutAdmin' 
 
 const ROUTES_WITHOUT_NAVBAR = ['/', '/login', '/register', '/forgot-password', '/reset-password']
 
@@ -121,6 +123,24 @@ function AppContent() {
           }
         />
 
+        <Route
+          path="/admin/knockout"
+          element={
+            <AdminRoute>
+              <KnockoutAdmin />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/knockout"
+          element={
+            <PrivateRoute>
+              <Knockout />
+            </PrivateRoute>
+          }
+          
+        />
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failure" element={<PaymentFailure />} />
         <Route path="/payment/pending" element={<PaymentPending />} />

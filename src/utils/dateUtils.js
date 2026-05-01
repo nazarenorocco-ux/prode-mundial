@@ -55,3 +55,6 @@ export const isMatchFinished = (match) => {
 
 // Alias opcional por si en algún archivo viejo lo usan
 export const estaFinalizado = (match) => isMatchFinished(match);
+
+export const formatMatchDate = formatearFecha;
+

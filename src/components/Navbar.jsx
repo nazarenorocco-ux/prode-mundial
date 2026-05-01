@@ -9,6 +9,7 @@ export default function Navbar() {
   const handleSignOut = async () => {
     navigate('/', { replace: true })
     await signOut()
+    window.location.reload()
   }
 
   const isActive = (path) => location.pathname === path ? 'active' : ''
@@ -33,10 +34,18 @@ export default function Navbar() {
             <Link to="/leaderboard" className={`navbar-link ${isActive('/leaderboard')}`}>
               Tabla
             </Link>
+            <Link to="/knockout" className={`navbar-link ${isActive('/knockout')}`}>
+              Eliminatorias
+            </Link>
             {isAdmin && (
-              <Link to="/admin" className={`navbar-link ${isActive('/admin')}`}>
+               <>
+            <Link to="/admin" className={`navbar-link ${isActive('/admin')}`}>
                 Admin
-              </Link>
+            </Link>
+            <Link to="/admin/knockout" className={`navbar-link ${isActive('/admin/knockout')}`}>
+                  Admin KO
+                </Link>
+            </>
             )}
             <span className="navbar-user" title={user.email}>
               {displayName}
