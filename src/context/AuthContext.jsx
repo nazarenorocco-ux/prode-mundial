@@ -5,14 +5,13 @@ import { supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
 const SUPERADMIN_EMAIL = 'nazarenorocco@gmail.com'
-const [profileLoading, setProfileLoading] = useState(false)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [signingOut, setSigningOut] = useState(false)
-
+   const [profileLoading, setProfileLoading] = useState(false)
   const isMounted = useRef(true)
   const hasSettled = useRef(false)
   const isSigningOutRef = useRef(false)
