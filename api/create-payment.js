@@ -31,7 +31,7 @@ export default async function handler(req, res) {
               title: 'Inscripción Prode Mundial 2026',
               quantity: 1,
               currency_id: 'ARS',
-              unit_price: 40000
+              unit_price: 0.1
             }
           ],
           payer: {

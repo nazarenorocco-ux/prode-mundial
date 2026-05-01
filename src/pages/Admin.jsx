@@ -477,14 +477,34 @@ export default function Admin() {
   // ── Confirmar pago ───────────────────────────────────────────────────────────
   // CAMBIO: recibe 'method' como parámetro ('transferencia' o 'efectivo')
   const handleConfirmPayment = async (playerId, method) => {
-    setConfirmingId(playerId)
-    const { error } = await supabase
-      .from('profiles')
-      .update({ status: 'activo', payment_method: method })
-      .eq('id', playerId)
+  setConfirmingId(playerId)
+  
+  // 1. Actualizar perfil
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ status: 'active', payment_method: method })
+    .eq('id', playerId)
+
+  if (profileError) {
+    console.error('Error actualizando perfil:', profileError)
     setConfirmingId(null)
-    if (!error) refetchPlayers()
+    return
   }
+
+  // 2. Actualizar competition_entries
+  const { error: entriesError } = await supabase
+    .from('competition_entries')
+    .update({ status: 'active', payment_method: method })
+    .eq('user_id', playerId)
+
+  if (entriesError) {
+    console.error('Error actualizando competition_entries:', entriesError)
+  }
+
+  setConfirmingId(null)
+  refetchPlayers()
+}
+
 
   // ── Promover/Demote admin ────────────────────────────────────────────────────
   const handleToggleAdmin = async (player) => {
@@ -534,10 +554,10 @@ export default function Admin() {
       p.email?.toLowerCase().includes(playerSearch.toLowerCase())
     const matchesFilter =
       playerFilter === 'all' ||
-      (playerFilter === 'activo'        && p.status === 'activo')                    ||
-      (playerFilter === 'pendiente'     && p.status === 'pendiente')                 ||
+      (playerFilter === 'active'        && p.status === 'active')                    ||
+      (playerFilter === 'pending'     && p.status === 'pending')                 ||
       (playerFilter === 'mp'            && p.payment_method === 'mp')                ||
-      (playerFilter === 'transferencia' && p.payment_method === 'transferencia')     ||
+      (playerFilter === 'transfer' && p.payment_method === 'transfer')     ||
       (playerFilter === 'efectivo'      && p.payment_method === 'efectivo')
     return matchesSearch && matchesFilter
   })
@@ -546,10 +566,10 @@ export default function Admin() {
   // CAMBIO: eliminado 'manual', agregado 'transferencia' y 'efectivo'
   const metrics = {
     total:         players.length,
-    activos:       players.filter(p => p.status === 'activo').length,
-    pending:       players.filter(p => p.status === 'pendiente').length,
+    activos:       players.filter(p => p.status === 'active').length,
+    pending:       players.filter(p => p.status === 'pending').length,
     mp:            players.filter(p => p.payment_method === 'mp').length,
-    transferencia: players.filter(p => p.payment_method === 'transferencia').length,
+    transferencia: players.filter(p => p.payment_method === 'transfer').length,
     efectivo:      players.filter(p => p.payment_method === 'efectivo').length,
   }
 
@@ -810,10 +830,10 @@ export default function Admin() {
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
               {[
                 { value: 'all',           label: 'Todos' },
-                { value: 'activo',        label: '✅ Activos' },
-                { value: 'pendiente',     label: '⏳ Pendientes' },
+                { value: 'active',        label: '✅ Activos' },
+                { value: 'pending',     label: '⏳ Pendientes' },
                 { value: 'mp',            label: '💳 MP' },
-                { value: 'transferencia', label: '🏦 Transferencia' },
+                { value: 'transfer', label: '🏦 Transferencia' },
                 { value: 'efectivo',      label: '💵 Efectivo' },
               ].map(f => (
                 <button
@@ -904,10 +924,10 @@ export default function Admin() {
                           fontSize: '0.72rem',
                           padding: '0.1rem 0.4rem',
                           borderRadius: '4px',
-                          background: player.status === 'activo' ? '#166534' : '#78350f',
-                          color: player.status === 'activo' ? '#4ade80' : '#fbbf24'
+                          background: player.status === 'active' ? '#166534' : '#78350f',
+                          color: player.status === 'active' ? '#4ade80' : '#fbbf24'
                         }}>
-                          {player.status === 'activo' ? '✅ Activo' : '⏳ Pendiente'}
+                          {player.status === 'active' ? '✅ Activo' : '⏳ Pendiente'}
                         </span>
                         {player.payment_method && (
                           <span style={{
@@ -919,7 +939,7 @@ export default function Admin() {
                           }}>
                             {/* CAMBIO: eliminado 'manual', agregados 'transferencia' y 'efectivo' */}
                             {player.payment_method === 'mp'            ? '💳 MercadoPago'   :
-                             player.payment_method === 'transferencia' ? '🏦 Transferencia' :
+                             player.payment_method === 'transfer' ? '🏦 Transferencia' :
                              player.payment_method === 'efectivo'      ? '💵 Efectivo'      :
                              player.payment_method}
                           </span>
@@ -941,11 +961,11 @@ export default function Admin() {
                       <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
 
                         {/* CAMBIO: reemplazado botón único por dos botones de método */}
-                        {player.status !== 'activo' && (
+                        {player.status !== 'active' && (
                           <>
                             <button
                               className="btn"
-                              onClick={() => handleConfirmPayment(player.id, 'transferencia')}
+                              onClick={() => handleConfirmPayment(player.id, 'transfer')}
                               disabled={confirmingId === player.id}
                               style={{
                                 fontSize: '0.78rem',

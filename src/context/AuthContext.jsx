@@ -5,12 +5,11 @@ import { supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
 const SUPERADMIN_EMAIL = 'nazarenorocco@gmail.com'
+const [profileLoading, setProfileLoading] = useState(false)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [signingOut, setSigningOut] = useState(false)
 
@@ -30,11 +29,10 @@ export function AuthProvider({ children }) {
   const clearAuthState = useCallback(() => {
     setUser(null)
     setProfile(null)
-    setIsAdmin(false)
-    setIsSuperAdmin(false)
   }, [])
 
-  const fetchProfile = useCallback(async (userId, userEmail) => {
+  const fetchProfile = useCallback(async (userId) => {
+    setProfileLoading(true) 
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -45,21 +43,17 @@ export function AuthProvider({ children }) {
       if (error) throw error
 
       if (isMounted.current) {
-        const adminFromDb = data?.is_admin ?? false
-        const superAdminFromDb = data?.is_superadmin ?? false
-        const superAdmin = superAdminFromDb && userEmail === SUPERADMIN_EMAIL
-
         setProfile(data)
-        setIsAdmin(adminFromDb || superAdmin)
-        setIsSuperAdmin(superAdmin)
       }
     } catch (e) {
       if (isMounted.current) {
         setProfile(null)
-        setIsAdmin(false)
-        setIsSuperAdmin(false)
       }
-    }
+     } finally {
+    if (isMounted.current) {
+      setProfileLoading(false)
+      }
+   }   
   }, [])
 
   const signOut = useCallback(async () => {
@@ -100,7 +94,7 @@ export function AuthProvider({ children }) {
 
         if (session?.user) {
           setUser(session.user)
-          await fetchProfile(session.user.id, session.user.email)
+          await fetchProfile(session.user.id)
         } else {
           clearAuthState()
         }
@@ -132,7 +126,7 @@ export function AuthProvider({ children }) {
 
         if (session?.user) {
           setUser(session.user)
-          await fetchProfile(session.user.id, session.user.email)
+          await fetchProfile(session.user.id)
         } else {
           clearAuthState()
         }
@@ -143,12 +137,15 @@ export function AuthProvider({ children }) {
       isMounted.current = false
       subscription.unsubscribe()
     }
-  }, [clearAuthState, fetchProfile, settle])
+  }, [])
 
   // Derivados del profile
-  const isActive = profile?.status === 'activo'
-  const isPending = profile?.status === 'pendiente'
-  const isBlocked = profile?.status === 'bloqueado'
+  const isAdmin = profile?.is_admin === true || profile?.role === 'admin'
+  const isSuperAdmin = (profile?.is_superadmin === true) || (user?.email === SUPERADMIN_EMAIL)
+  const isActive = profile?.status === 'active'
+  const isPending = profile?.status === 'pending'
+  const isBlocked = profile?.status === 'blocked'
+
 
   return (
     <AuthContext.Provider
@@ -161,6 +158,7 @@ export function AuthProvider({ children }) {
         isPending,
         isBlocked,
         loading,
+        profileLoading,
         signingOut,
         signOut
       }}

@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // MercadoPago envía GET para verificar el endpoint al configurarlo
   if (req.method === 'GET') {
     return res.status(200).json({ status: 'ok' })
   }
@@ -8,10 +7,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  // Importación dinámica para Vercel serverless
   const { createClient } = await import('@supabase/supabase-js')
 
-  // SUPABASE_URL (sin prefijo VITE_) debe estar en Vercel env vars
   const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -25,7 +22,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No payment ID' })
     }
 
-    // Verificar el pago contra la API de MercadoPago
     const mpResponse = await fetch(
       `https://api.mercadopago.com/v1/payments/${paymentId}`,
       {
@@ -36,14 +32,14 @@ export default async function handler(req, res) {
     )
 
     if (!mpResponse.ok) {
-      return res
-        .status(502)
-        .json({ error: 'Error consultando MercadoPago', status: mpResponse.status })
+      return res.status(502).json({
+        error: 'Error consultando MercadoPago',
+        status: mpResponse.status
+      })
     }
 
     const payment = await mpResponse.json()
 
-    // Solo procesar pagos aprobados
     if (payment.status !== 'approved') {
       return res.status(200).json({ message: 'Payment not approved, ignored' })
     }
@@ -54,30 +50,40 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No external_reference en el pago' })
     }
 
-    // Validar que external_reference sea un UUID válido
-    // (evita que un webhook malicioso active cuentas con IDs arbitrarios)
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(userId)) {
-      return res
-        .status(400)
-        .json({ error: 'external_reference no es un UUID válido' })
+      return res.status(400).json({ error: 'external_reference no es un UUID válido' })
     }
 
-    // Activar la cuenta del usuario
-    const { error } = await supabase
+    // ✅ 1. Actualizar profiles
+    const { error: profileError } = await supabase
       .from('profiles')
       .update({
-        status: 'activo',
+        status: 'active',       // ✅ canónico
         payment_method: 'mp'
       })
       .eq('id', userId)
 
-    if (error) {
-      return res.status(500).json({ error: error.message })
+    if (profileError) {
+      return res.status(500).json({ error: profileError.message })
+    }
+
+    // ✅ 2. Actualizar competition_entries (ambas competencias)
+    const { error: entriesError } = await supabase
+      .from('competition_entries')
+      .update({
+        status: 'active',       // ✅ canónico
+        payment_method: 'mp'
+      })
+      .eq('user_id', userId)
+
+    if (entriesError) {
+      return res.status(500).json({ error: entriesError.message })
     }
 
     return res.status(200).json({ success: true, userId })
+
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }

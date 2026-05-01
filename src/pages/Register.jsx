@@ -177,62 +177,86 @@ function StepRegisterForm({ paymentMethod, onBack }) {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
+  e.preventDefault()
+  setError('')
 
-    const validationError = validate()
-    if (validationError) return setError(validationError)
+  const validationError = validate()
+  if (validationError) return setError(validationError)
 
-    setLoading(true)
+  setLoading(true)
 
-    try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
+  const GROUPS_ID = 'c4e57607-7fe8-4a0a-b8a1-b0afedb9620b'
+  const KNOCKOUT_ID = '01030879-760e-4fe3-b329-7c09c623cc58'
+
+  try {
+    // 1. Crear usuario en Auth
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { username } }
+    })
+    if (signUpError) throw signUpError
+    if (!data.user) throw new Error('No se pudo crear el usuario')
+
+    // 2. Crear perfil con status en inglés
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: data.user.id,
+        username: username.trim(),
         email,
-        password,
-        options: { data: { username } }
-      })
-      if (signUpError) throw signUpError
-      if (!data.user) throw new Error('No se pudo crear el usuario')
+        status: 'pending',
+        payment_method: paymentMethod
+      }, { onConflict: 'id' })
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: data.user.id,
-          username: username.trim(),
-          email,
-          status: 'pendiente',
+    if (profileError) throw profileError
+
+    // 3. Insertar competition_entries para ambas competencias
+    const { error: entriesError } = await supabase
+      .from('competition_entries')
+      .insert([
+        {
+          user_id: data.user.id,
+          competition_id: GROUPS_ID,
+          status: 'pending',
           payment_method: paymentMethod
-        }, { onConflict: 'id' })
-
-      if (profileError) throw profileError
-
-       if (isMP) {   
-        const response = await fetch('/api/create-payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: data.user.id, userEmail: email })
-        })
-
-        if (!response.ok) {
-          throw new Error(`Error al crear el pago (${response.status})`)
+        },
+        {
+          user_id: data.user.id,
+          competition_id: KNOCKOUT_ID,
+          status: 'pending',
+          payment_method: paymentMethod
         }
+      ])
 
-        const paymentData = await response.json()
-        if (!paymentData.init_point) {
-          throw new Error('No se recibió el link de pago de MercadoPago')
-        }
+    if (entriesError) throw entriesError
 
-        window.location.href = paymentData.init_point
-        return
-      }else {
+    // 4. Redirigir según método de pago
+    if (isMP) {
+      const response = await fetch('/api/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: data.user.id, userEmail: email })
+      })
 
-      navigate('/dashboard', { replace: true })
-      }     
-    } catch (err) {
-      setError(err.message || 'Ocurrió un error. Intentá de nuevo.')
-      setLoading(false)
+      if (!response.ok) throw new Error(`Error al crear el pago (${response.status})`)
+
+      const paymentData = await response.json()
+      if (!paymentData.init_point) throw new Error('No se recibió el link de pago de MercadoPago')
+
+      window.location.href = paymentData.init_point
+      return
+    } else {
+      // Transfer o efectivo → pending
+      navigate('/payment/pending', { replace: true })
     }
+
+  } catch (err) {
+    setError(err.message || 'Ocurrió un error. Intentá de nuevo.')
+    setLoading(false)
   }
+}
+
 
   const isMP = paymentMethod === 'mp'
 

@@ -34,22 +34,41 @@ function LoadingScreen() {
 }
 
 function PrivateRoute({ children }) {
-  const { user, loading, signingOut } = useAuth()
-  if (loading || signingOut) return <LoadingScreen />
-  return user ? children : <Navigate to="/login" replace />
+  const { user, profile, loading, profileLoading, signingOut, isActive, isPending, isBlocked, isAdmin, isSuperAdmin } = useAuth()
+  const location = useLocation()
+
+  if (loading || signingOut || profileLoading) return <LoadingScreen />  // ← agregar profileLoading
+  if (!user) return <Navigate to="/login" replace />
+  if (!profile) return <LoadingScreen />
+  
+  if (isAdmin || isSuperAdmin) return children
+
+  if (isPending) {
+    if (location.pathname === '/payment/pending') return children
+    return <Navigate to="/payment/pending" replace />
+  }
+
+  if (isBlocked) return <Navigate to="/login" replace />
+  if (!isActive) return <Navigate to="/login" replace />
+
+  return children
 }
 
 function AdminRoute({ children }) {
-  const { user, loading, isAdmin, signingOut } = useAuth()
-  if (loading || signingOut) return <LoadingScreen />
+  const { user, loading, profileLoading, isAdmin, signingOut } = useAuth()  // ← agregar profileLoading
+  if (loading || signingOut || profileLoading) return <LoadingScreen />      // ← agregar profileLoading
   if (!user) return <Navigate to="/login" replace />
   if (!isAdmin) return <Navigate to="/" replace />
   return children
 }
 
 function PublicRoute({ children }) {
-  const { user, loading, signingOut } = useAuth()
-  if (loading || signingOut) return <LoadingScreen />
+  const { user, profile, loading, profileLoading, signingOut } = useAuth()  // ← agregar profileLoading
+  if (loading || signingOut || profileLoading) return <LoadingScreen />      // ← agregar profileLoading
+  if (user && !profile) return <LoadingScreen />
+  
+  if (user && profile && profile.status === 'pending') return children
+  
   return user ? <Navigate to="/dashboard" replace /> : children
 }
 
@@ -139,12 +158,20 @@ function AppContent() {
               <Knockout />
             </PrivateRoute>
           }
-          
         />
+
+        <Route
+          path="/payment/pending"
+          element={
+             <PrivateRoute>
+                 <PaymentPending />
+            </PrivateRoute>
+           }
+        />
+
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failure" element={<PaymentFailure />} />
-        <Route path="/payment/pending" element={<PaymentPending />} />
-
+        
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
