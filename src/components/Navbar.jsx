@@ -7,9 +7,10 @@ export default function Navbar() {
   const location = useLocation()
 
  const handleSignOut = () => {
-  signOut(() => navigate('/', { replace: true }))
+  signOut(() => {
+    setTimeout(() => navigate('/', { replace: true }), 50)
+  })
 }
-
   const isActive = (path) => location.pathname === path ? 'active' : ''
 
   const displayName =
