@@ -58,26 +58,30 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const signOut = useCallback(async (onComplete) => {
-    if (!isMounted.current) return
+ const signOut = useCallback(async (onComplete) => {
+  if (!isMounted.current) return
 
-    isSigningOutRef.current = true
-    setSigningOut(true)
-    clearAuthState()
+  isSigningOutRef.current = true
+  setSigningOut(true)
+  clearAuthState()
 
-    try {
-      localStorage.removeItem('recovery_in_progress')
-      await supabase.auth.signOut({ scope: 'global' })
-    } catch (e) {
-      console.error('❌ Error en signOut:', e)
-    } finally {
-      if (isMounted.current) {
+  try {
+    localStorage.removeItem('recovery_in_progress')
+    await supabase.auth.signOut({ scope: 'global' })
+  } catch (e) {
+    console.error('❌ Error en signOut:', e)
+  } finally {
+    if (isMounted.current) {
+      setSigningOut(false)
+      onComplete?.()
+      // Resetear DESPUÉS para que SIGNED_OUT event sea ignorado
+      setTimeout(() => {
         isSigningOutRef.current = false
-        setSigningOut(false)
-         onComplete?.() 
-      }
+      }, 500)
     }
-  }, [clearAuthState])
+  }
+}, [clearAuthState])
+
 
   useEffect(() => {
     isMounted.current = true
