@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useNavigate, Link } from 'react-router-dom'
 
@@ -234,7 +234,6 @@ function StepRegisterForm({ paymentMethod, onBack }) {
             userEmail: email,
             userName: username.trim(),
             competition_id: GROUPS_ID,
-            amount: 40000
           })
         })
 
@@ -339,10 +338,55 @@ function StepRegisterForm({ paymentMethod, onBack }) {
 export default function Register() {
   const [step, setStep] = useState('method')
   const [paymentMethod, setPaymentMethod] = useState(null)
+  const [registrationOpen, setRegistrationOpen] = useState(null) // null = cargando
+
+  // Chequear si el registro está abierto
+  useEffect(() => {
+    const checkRegistration = async () => {
+      const { data } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'groups_registration_open')
+        .single()
+      setRegistrationOpen(data?.value === 'true')
+    }
+    checkRegistration()
+  }, [])
 
   const handleSelectMethod = (method) => {
     setPaymentMethod(method)
     setStep(method === 'transfer' ? 'transfer-info' : 'form')
+  }
+
+  // Cargando
+  if (registrationOpen === null) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card" style={{ textAlign: 'center', padding: '3rem' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
+          <p style={{ color: 'var(--text-muted)' }}>Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Registro cerrado
+  if (!registrationOpen) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card" style={{ textAlign: 'center', padding: '2.5rem' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
+          <h2 className="auth-title">Inscripción cerrada</h2>
+          <p className="auth-subtitle" style={{ marginBottom: '1.5rem' }}>
+            El registro para la Fase de Grupos ya está cerrado.<br />
+            Seguí el prode en redes para enterarte de novedades.
+          </p>
+          <Link to="/login" className="btn btn-primary" style={{ display: 'inline-block' }}>
+            Iniciar sesión
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   if (step === 'method') {

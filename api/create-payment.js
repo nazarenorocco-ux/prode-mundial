@@ -7,7 +7,6 @@ export default async function handler(req, res) {
     userId,
     userEmail,
     competition_id,
-    amount,
     userName
   } = req.body
 
@@ -15,18 +14,42 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Faltan datos: userId y userEmail son requeridos' })
   }
 
-  // Validar que userId sea UUID antes de enviarlo a MP como external_reference
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
   if (!uuidRegex.test(userId)) {
     return res.status(400).json({ error: 'userId inválido' })
   }
 
-  const isKnockout =
-    competition_id === '01030879-760e-4fe3-b329-7c09c623cc58'
+  if (!competition_id || !uuidRegex.test(competition_id)) {
+    return res.status(400).json({ error: 'competition_id inválido o ausente' })
+  }
 
-  const finalAmount = 1
+  const { createClient } = await import('@supabase/supabase-js')
 
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
+
+  // Leer entry_fee desde la tabla competitions
+  const { data: competition, error: competitionError } = await supabase
+    .from('competitions')
+    .select('entry_fee, name')
+    .eq('id', competition_id)
+    .single()
+
+  if (competitionError || !competition) {
+    return res.status(404).json({ error: 'Competencia no encontrada' })
+  }
+
+  const finalAmount = competition.entry_fee
+
+  if (!finalAmount || finalAmount <= 0) {
+    return res.status(400).json({ error: 'entry_fee inválido para esta competencia' })
+  }
+
+  const isKnockout = competition.name === 'knockout'
 
   try {
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
@@ -53,7 +76,7 @@ export default async function handler(req, res) {
         external_reference: userId,
         metadata: {
           userId,
-          competition_id: competition_id || null
+          competition_id
         },
         notification_url: 'https://prode-mundial-tau.vercel.app/api/confirm-payment',
         back_urls: {

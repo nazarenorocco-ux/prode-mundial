@@ -6,11 +6,12 @@ export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
 
- const handleSignOut = () => {
+const handleSignOut = () => {
   signOut(() => {
-    setTimeout(() => navigate('/', { replace: true }), 50)
+    navigate('/', { replace: true })
   })
 }
+
   const isActive = (path) => location.pathname === path ? 'active' : ''
 
   const displayName =

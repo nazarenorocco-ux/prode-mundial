@@ -11,9 +11,6 @@ import ResetPassword from './pages/ResetPassword'
 import ForgotPassword from './pages/ForgotPassword'
 import Dashboard from './pages/Dashboard'
 import Leaderboard from './pages/Leaderboard'
-import KnockoutPage from './pages/KnockoutPage'
-import KnockoutComingSoon from './pages/KnockoutComingSoon'
-import KnockoutJoin from './pages/KnockoutJoin'
 import Knockout from './pages/Knockout'
 import PaymentPending from './pages/PaymentPending'
 import PaymentSuccess from './pages/PaymentSuccess'
@@ -41,8 +38,6 @@ function PrivateRoute({ children }) {
     return <><Navbar />{children}</>
   }
 
-  // Permitir acceso a /payment/pending aunque el usuario esté pending
-  // sin esta excepción se produce un loop infinito de redirecciones
   if (isPending && location.pathname !== '/payment/pending') {
     return <Navigate to="/payment/pending" replace />
   }
@@ -98,9 +93,6 @@ function PublicRoute({ children }) {
   return children
 }
 
-// Ruta abierta: accesible siempre, sin importar estado de autenticación.
-// Usada para páginas de destino post-registro o post-pago donde el usuario
-// puede estar logueado pero con status pending y no debe ser redirigido.
 function OpenRoute({ children }) {
   return children
 }
@@ -108,35 +100,29 @@ function OpenRoute({ children }) {
 export default function App() {
   return (
     <Routes>
-      {/* ── Públicas: solo para NO logueados ─────────────────────────────── */}
-     // App.jsx
+      {/* ── Públicas ──────────────────────────────────────────────────────── */}
       <Route path="/" element={<OpenRoute><Landing /></OpenRoute>} />
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
       <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
 
-      {/* ── Abiertas: accesibles siempre, sin redirecciones ──────────────── */}
-      {/* /registro-exitoso: destino post-registro (usuario puede estar pending) */}
-      {/* /payment/success y /payment/failure: destino post-pago MercadoPago   */}
+      {/* ── Abiertas ──────────────────────────────────────────────────────── */}
       <Route path="/registro-exitoso" element={<OpenRoute><RegistroExitoso /></OpenRoute>} />
       <Route path="/payment/success" element={<OpenRoute><PaymentSuccess /></OpenRoute>} />
       <Route path="/payment/failure" element={<OpenRoute><PaymentFailure /></OpenRoute>} />
 
-      {/* ── Privadas: requieren login y status active ─────────────────────── */}
+      {/* ── Privadas ──────────────────────────────────────────────────────── */}
       <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
       <Route path="/knockout" element={<PrivateRoute><Knockout /></PrivateRoute>} />
-      <Route path="/knockout/page" element={<PrivateRoute><KnockoutPage /></PrivateRoute>} />
-      <Route path="/knockout/coming-soon" element={<PrivateRoute><KnockoutComingSoon /></PrivateRoute>} />
-      <Route path="/knockout/join" element={<PrivateRoute><KnockoutJoin /></PrivateRoute>} />
       <Route path="/payment/pending" element={<PrivateRoute><PaymentPending /></PrivateRoute>} />
 
-      {/* ── Admin ────────────────────────────────────────────────────────── */}
+      {/* ── Admin ─────────────────────────────────────────────────────────── */}
       <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
       <Route path="/admin/knockout" element={<AdminRoute><KnockoutAdmin /></AdminRoute>} />
 
-      {/* ── Fallback ─────────────────────────────────────────────────────── */}
+      {/* ── Fallback ──────────────────────────────────────────────────────── */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
