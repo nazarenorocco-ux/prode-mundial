@@ -58,7 +58,7 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (onComplete) => {
     if (!isMounted.current) return
 
     isSigningOutRef.current = true
@@ -74,6 +74,7 @@ export function AuthProvider({ children }) {
       if (isMounted.current) {
         isSigningOutRef.current = false
         setSigningOut(false)
+         onComplete?.() 
       }
     }
   }, [clearAuthState])

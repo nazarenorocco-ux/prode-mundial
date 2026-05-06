@@ -6,10 +6,9 @@ export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const handleSignOut = async () => {
-    await signOut()
-    navigate('/', { replace: true })
-  }
+ const handleSignOut = () => {
+  signOut(() => navigate('/', { replace: true }))
+}
 
   const isActive = (path) => location.pathname === path ? 'active' : ''
 
