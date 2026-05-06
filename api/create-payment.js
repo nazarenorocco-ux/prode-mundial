@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   const isKnockout =
     competition_id === '01030879-760e-4fe3-b329-7c09c623cc58'
 
-  const finalAmount = Number(amount || (isKnockout ? 20000 : 40000))
+  const finalAmount = Number(amount || (isKnockout ? 20000 : 1))
 
   try {
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
