@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "../lib/supabaseClient";
 
+
+
 const ROUNDS = ['R32', 'R16', 'QF', 'SF', '3P', 'F'];
 const ROUND_LABELS = {
   R32: '16avos de Final',

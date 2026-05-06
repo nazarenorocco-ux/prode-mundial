@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import Navbar from './components/Navbar'
 
-// Pages
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -33,7 +33,7 @@ function PrivateRoute({ children }) {
   }
 
   if (isAdmin) {
-    return children
+    return <><Navbar />{children}</>
   }
 
   if (isPending) {
@@ -44,7 +44,7 @@ function PrivateRoute({ children }) {
     return <Navigate to="/login" replace />
   }
 
-  return children
+  return <><Navbar />{children}</>
 }
 
 function AdminRoute({ children }) {
@@ -63,7 +63,7 @@ function AdminRoute({ children }) {
     return <Navigate to="/dashboard" replace />
   }
 
-  return children
+  return <><Navbar />{children}</>
 }
 
 function PublicRoute({ children }) {

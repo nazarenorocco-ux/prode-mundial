@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import KnockoutMatchCard from '../components/KnockoutMatchCard';
 
+
+
 const KNOCKOUT_COMPETITION_ID = '01030879-760e-4fe3-b329-7c09c623cc58';
 
 const ROUNDS = [
