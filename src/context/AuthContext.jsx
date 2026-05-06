@@ -72,15 +72,19 @@ export function AuthProvider({ children }) {
     console.error('❌ Error en signOut:', e)
   } finally {
     if (isMounted.current) {
-      setSigningOut(false)
+      // Primero ejecutar la navegación
       onComplete?.()
-      // Resetear DESPUÉS para que SIGNED_OUT event sea ignorado
+      // Después de un tick, apagar signingOut
       setTimeout(() => {
+        if (isMounted.current) {
+          setSigningOut(false)
+        }
         isSigningOutRef.current = false
       }, 500)
     }
   }
 }, [clearAuthState])
+
 
 
   useEffect(() => {
