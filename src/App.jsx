@@ -56,16 +56,13 @@ function PrivateRoute({ children }) {
   if (!user) return <Navigate to="/login" replace />
   if (!profile) return <LoadingScreen />
 
-  // Admins pasan siempre
   if (isAdmin || isSuperAdmin) return children
 
-  // Pending: solo puede ver /payment/pending
   if (isPending) {
     if (location.pathname === '/payment/pending') return children
     return <Navigate to="/payment/pending" replace />
   }
 
-  // Bloqueado o inactivo
   if (isBlocked || !isActive) return <Navigate to="/login" replace />
 
   return children
@@ -82,12 +79,13 @@ function AdminRoute({ children }) {
 }
 
 function PublicRoute({ children }) {
-  const { user, profile, loading, profileLoading, signingOut } = useAuth()
+  const { user, profile, loading, profileLoading, signingOut, isPending } = useAuth()
 
   if (loading || signingOut || profileLoading) return <LoadingScreen />
   if (user && !profile) return <LoadingScreen />
 
   if (user) {
+    if (isPending) return <Navigate to="/payment/pending" replace />
     return <Navigate to="/dashboard" replace />
   }
 
@@ -211,9 +209,9 @@ function AppContent() {
         <Route
           path="/payment/pending"
           element={
-            <PublicRoute>
+            <PrivateRoute>
               <PaymentPending />
-            </PublicRoute>
+            </PrivateRoute>
           }
         />
 
