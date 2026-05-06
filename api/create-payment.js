@@ -3,7 +3,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { userId, userEmail } = req.body
+  const {
+    userId,
+    userEmail,
+    competition_id,
+    amount,
+    userName
+  } = req.body
 
   if (!userId || !userEmail) {
     return res.status(400).json({ error: 'Faltan datos: userId y userEmail son requeridos' })
@@ -16,39 +22,47 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'userId inválido' })
   }
 
+  const isKnockout =
+    competition_id === '01030879-760e-4fe3-b329-7c09c623cc58'
+
+  const finalAmount = Number(amount || (isKnockout ? 20000 : 40000))
+
   try {
-    const response = await fetch(
-      'https://api.mercadopago.com/checkout/preferences',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-          'Content-Type': 'application/json'
+    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        items: [
+          {
+            title: isKnockout
+              ? 'Inscripción Prode Mundial 2026 - Knockout'
+              : 'Inscripción Prode Mundial 2026 - Grupos',
+            quantity: 1,
+            currency_id: 'ARS',
+            unit_price: finalAmount
+          }
+        ],
+        payer: {
+          email: userEmail,
+          name: userName || undefined
         },
-        body: JSON.stringify({
-          items: [
-            {
-              title: 'Inscripción Prode Mundial 2026',
-              quantity: 1,
-              currency_id: 'ARS',
-              unit_price: 0.1
-            }
-          ],
-          payer: {
-            email: userEmail
-          },
-          external_reference: userId,
-          notification_url:
-            'https://prode-mundial-tau.vercel.app/api/confirm-payment',
-          back_urls: {
-            success: 'https://prode-mundial-tau.vercel.app/payment/success',
-            failure: 'https://prode-mundial-tau.vercel.app/payment/failure',
-            pending: 'https://prode-mundial-tau.vercel.app/payment/pending'
-          },
-          auto_return: 'approved'
-        })
-      }
-    )
+        external_reference: userId,
+        metadata: {
+          userId,
+          competition_id: competition_id || null
+        },
+        notification_url: 'https://prode-mundial-tau.vercel.app/api/confirm-payment',
+        back_urls: {
+          success: 'https://prode-mundial-tau.vercel.app/payment/success',
+          failure: 'https://prode-mundial-tau.vercel.app/payment/failure',
+          pending: 'https://prode-mundial-tau.vercel.app/payment/pending'
+        },
+        auto_return: 'approved'
+      })
+    })
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}))
@@ -61,9 +75,7 @@ export default async function handler(req, res) {
     const data = await response.json()
 
     if (!data.init_point) {
-      return res
-        .status(500)
-        .json({ error: 'MercadoPago no devolvió init_point', detail: data })
+      return res.status(500).json({ error: 'MercadoPago no devolvió init_point', detail: data })
     }
 
     return res.status(200).json({ init_point: data.init_point })

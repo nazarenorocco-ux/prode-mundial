@@ -22,14 +22,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No payment ID' })
     }
 
-    const mpResponse = await fetch(
-      `https://api.mercadopago.com/v1/payments/${paymentId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`
-        }
+    const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: {
+        Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`
       }
-    )
+    })
 
     if (!mpResponse.ok) {
       return res.status(502).json({
@@ -45,6 +42,7 @@ export default async function handler(req, res) {
     }
 
     const userId = payment.external_reference
+    const competitionId = payment?.metadata?.competition_id || null
 
     if (!userId) {
       return res.status(400).json({ error: 'No external_reference en el pago' })
@@ -56,11 +54,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'external_reference no es un UUID válido' })
     }
 
-    // ✅ 1. Actualizar profiles
+    // 1. Actualizar profiles
     const { error: profileError } = await supabase
       .from('profiles')
       .update({
-        status: 'active',       // ✅ canónico
+        status: 'active',
         payment_method: 'mp'
       })
       .eq('id', userId)
@@ -69,21 +67,26 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: profileError.message })
     }
 
-    // ✅ 2. Actualizar competition_entries (ambas competencias)
-    const { error: entriesError } = await supabase
+    // 2. Actualizar competition_entries
+    const entriesQuery = supabase
       .from('competition_entries')
       .update({
-        status: 'active',       // ✅ canónico
+        status: 'active',
         payment_method: 'mp'
       })
       .eq('user_id', userId)
+
+    if (competitionId) {
+      entriesQuery.eq('competition_id', competitionId)
+    }
+
+    const { error: entriesError } = await entriesQuery
 
     if (entriesError) {
       return res.status(500).json({ error: entriesError.message })
     }
 
-    return res.status(200).json({ success: true, userId })
-
+    return res.status(200).json({ success: true, userId, competitionId })
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }

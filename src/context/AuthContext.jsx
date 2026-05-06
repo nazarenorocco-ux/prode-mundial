@@ -1,5 +1,3 @@
-//AuthContext.jsx
-
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
@@ -11,10 +9,13 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [signingOut, setSigningOut] = useState(false)
-   const [profileLoading, setProfileLoading] = useState(false)
+  const [profileLoading, setProfileLoading] = useState(true)
+
   const isMounted = useRef(true)
   const hasSettled = useRef(false)
   const isSigningOutRef = useRef(false)
+  const initialEventProcessed = useRef(false)
+  const pendingEvent = useRef(null)
 
   const isRecoveryRoute = () => window.location.pathname === '/reset-password'
 
@@ -28,10 +29,12 @@ export function AuthProvider({ children }) {
   const clearAuthState = useCallback(() => {
     setUser(null)
     setProfile(null)
+    setProfileLoading(false)
   }, [])
 
   const fetchProfile = useCallback(async (userId) => {
-    setProfileLoading(true) 
+    setProfileLoading(true)
+
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -48,11 +51,11 @@ export function AuthProvider({ children }) {
       if (isMounted.current) {
         setProfile(null)
       }
-     } finally {
-    if (isMounted.current) {
-      setProfileLoading(false)
+    } finally {
+      if (isMounted.current) {
+        setProfileLoading(false)
       }
-   }   
+    }
   }, [])
 
   const signOut = useCallback(async () => {
@@ -78,6 +81,8 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     isMounted.current = true
     hasSettled.current = false
+    initialEventProcessed.current = false
+    pendingEvent.current = null
 
     const initAuth = async () => {
       try {
@@ -98,11 +103,20 @@ export function AuthProvider({ children }) {
           clearAuthState()
         }
       } catch (e) {
-        if (isMounted.current) {
-          clearAuthState()
-        }
+        if (isMounted.current) clearAuthState()
       } finally {
         settle()
+        initialEventProcessed.current = true
+
+        if (pendingEvent.current && isMounted.current) {
+          const { session } = pendingEvent.current
+          pendingEvent.current = null
+
+          if (session?.user) {
+            setUser(session.user)
+            await fetchProfile(session.user.id)
+          }
+        }
       }
     }
 
@@ -111,11 +125,16 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted.current) return
-        if (!hasSettled.current) return
-
         if (isRecoveryRoute()) return
         if (event === 'PASSWORD_RECOVERY') return
         if (localStorage.getItem('recovery_in_progress') === 'true') return
+
+        if (!initialEventProcessed.current) {
+          if (event === 'SIGNED_IN') {
+            pendingEvent.current = { event, session }
+          }
+          return
+        }
 
         if (event === 'SIGNED_OUT') {
           if (isSigningOutRef.current) return
@@ -136,15 +155,13 @@ export function AuthProvider({ children }) {
       isMounted.current = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [clearAuthState, fetchProfile, settle])
 
-  // Derivados del profile
   const isAdmin = profile?.is_admin === true || profile?.role === 'admin'
-  const isSuperAdmin = (profile?.is_superadmin === true) || (user?.email === SUPERADMIN_EMAIL)
+  const isSuperAdmin = profile?.is_superadmin === true || user?.email === SUPERADMIN_EMAIL
   const isActive = profile?.status === 'active'
   const isPending = profile?.status === 'pending'
   const isBlocked = profile?.status === 'blocked'
-
 
   return (
     <AuthContext.Provider

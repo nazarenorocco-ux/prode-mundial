@@ -14,6 +14,7 @@ const TRANSFER_INFO = {
 
 const USERNAME_MIN = 2
 const USERNAME_MAX = 30
+const GROUPS_ID = 'c4e57607-7fe8-4a0a-b8a1-b0afedb9620b'
 
 // ─── Ícono de WhatsApp ─────────────────────────────────────────────────────
 function WhatsAppIcon() {
@@ -24,16 +25,14 @@ function WhatsAppIcon() {
   )
 }
 
-// ─── Botón volver reutilizable ─────────────────────────────────────────────
 function BackButton({ onClick }) {
   return (
-    <button className="back-button" onClick={onClick}>
+    <button type="button" className="back-button" onClick={onClick}>
       ← Volver
     </button>
   )
 }
 
-// ─── PASO 1: Elegir método de pago ────────────────────────────────────────
 function StepPaymentMethod({ onSelect }) {
   return (
     <div className="auth-container">
@@ -44,14 +43,16 @@ function StepPaymentMethod({ onSelect }) {
         </p>
 
         <div className="payment-buttons" style={{ marginTop: '2rem' }}>
-          <button className="btn-mercadopago" onClick={() => onSelect('mp')}>
+          <button type="button" className="btn-mercadopago" onClick={() => onSelect('mp')}>
             <span>💳</span>
             <span>Donar con MercadoPago</span>
           </button>
 
-          <div className="payment-divider"><span>o</span></div>
+          <div className="payment-divider">
+            <span>o</span>
+          </div>
 
-          <button className="btn-transfer" onClick={() => onSelect('transfer')}>
+          <button type="button" className="btn-transfer" onClick={() => onSelect('transfer')}>
             <span className="btn-icon">🏦</span>
             <span>Donar por Transferencia Bancaria</span>
           </button>
@@ -65,7 +66,6 @@ function StepPaymentMethod({ onSelect }) {
   )
 }
 
-// ─── PASO 2A: Mostrar datos de transferencia ──────────────────────────────
 function StepTransferInfo({ onConfirm, onBack }) {
   const [copied, setCopied] = useState(null)
 
@@ -82,19 +82,20 @@ function StepTransferInfo({ onConfirm, onBack }) {
 
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <span style={{ fontSize: '2.5rem' }}>🏦</span>
-          <h2 className="auth-title" style={{ marginTop: '0.5rem' }}>Datos para transferir</h2>
+          <h2 className="auth-title" style={{ marginTop: '0.5rem' }}>
+            Datos para transferir
+          </h2>
           <p className="auth-subtitle">
-            Realizá una transferencia de{' '}
-            <strong style={{ color: '#63b3ed' }}>{TRANSFER_INFO.monto}</strong> a:
+            Realizá una transferencia de <strong style={{ color: '#63b3ed' }}>{TRANSFER_INFO.monto}</strong> a:
           </p>
         </div>
 
         <div className="transfer-info">
           {[
             { label: 'Alias', value: TRANSFER_INFO.alias, key: 'alias', copyable: true },
-            { label: 'CBU',   value: TRANSFER_INFO.cbu,   key: 'cbu',   copyable: true, className: 'cbu' },
-            { label: 'Banco', value: TRANSFER_INFO.banco,   copyable: false },
-            { label: 'Titular', value: TRANSFER_INFO.titular, copyable: false },
+            { label: 'CBU', value: TRANSFER_INFO.cbu, key: 'cbu', copyable: true, className: 'cbu' },
+            { label: 'Banco', value: TRANSFER_INFO.banco, copyable: false },
+            { label: 'Titular', value: TRANSFER_INFO.titular, copyable: false }
           ].map(({ label, value, key, copyable, className }) => (
             <div className="transfer-row" key={label}>
               <span className="transfer-label">{label}</span>
@@ -102,6 +103,7 @@ function StepTransferInfo({ onConfirm, onBack }) {
                 <div className="transfer-value-group">
                   <span className={`transfer-value${className ? ` ${className}` : ''}`}>{value}</span>
                   <button
+                    type="button"
                     className={`copy-btn ${copied === key ? 'copied' : ''}`}
                     onClick={() => copyToClipboard(value, key)}
                   >
@@ -117,8 +119,7 @@ function StepTransferInfo({ onConfirm, onBack }) {
 
         <div className="transfer-contact">
           <p>
-            📱 Después de transferir, enviá el comprobante por WhatsApp
-            junto con el email con el que te vas a registrar:
+            📱 Después de transferir, enviá el comprobante por WhatsApp junto con el email con el que te vas a registrar:
           </p>
           <a
             href={`https://wa.me/${TRANSFER_INFO.whatsappNumber}`}
@@ -139,7 +140,7 @@ function StepTransferInfo({ onConfirm, onBack }) {
           </p>
         </div>
 
-        <button className="modal-done-btn" onClick={onConfirm}>
+        <button type="button" className="modal-done-btn" onClick={onConfirm}>
           Ya anoté los datos → Crear mi cuenta
         </button>
       </div>
@@ -147,14 +148,13 @@ function StepTransferInfo({ onConfirm, onBack }) {
   )
 }
 
-// ─── PASO 2B / 3: Formulario de registro ──────────────────────────────────
 function StepRegisterForm({ paymentMethod, onBack }) {
-  const [email, setEmail]                   = useState('')
-  const [password, setPassword]             = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [username, setUsername]             = useState('')
-  const [error, setError]                   = useState('')
-  const [loading, setLoading]               = useState(false)
+  const [username, setUsername] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const validate = () => {
@@ -176,89 +176,87 @@ function StepRegisterForm({ paymentMethod, onBack }) {
     return null
   }
 
- const handleSubmit = async (e) => {
-  e.preventDefault()
-  setError('')
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
 
-  const validationError = validate()
-  if (validationError) return setError(validationError)
+    const validationError = validate()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
 
-  setLoading(true)
+    setLoading(true)
 
-  const GROUPS_ID = 'c4e57607-7fe8-4a0a-b8a1-b0afedb9620b'
-  const KNOCKOUT_ID = '01030879-760e-4fe3-b329-7c09c623cc58'
-
-  try {
-    // 1. Crear usuario en Auth (signOut previo por si hay sesión huérfana)
-    await supabase.auth.signOut()
-
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { username } }
-    })
-    if (signUpError) throw signUpError
-    if (!data.user) throw new Error('No se pudo crear el usuario')
-
-    // 2. Crear perfil
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .upsert({
-        id: data.user.id,
-        username: username.trim(),
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
-        status: 'pending',
-        payment_method: paymentMethod
-      }, { onConflict: 'id' })
+        password,
+        options: {
+          data: { username: username.trim() }
+        }
+      })
 
-    if (profileError) throw profileError
+      if (signUpError) throw signUpError
+      if (!data?.user) throw new Error('No se pudo crear el usuario')
 
-    // 3. Insertar competition_entries
-    const { error: entriesError } = await supabase
-      .from('competition_entries')
-      .insert([
+      const userId = data.user.id
+
+      const { error: profileError } = await supabase.from('profiles').upsert(
         {
-          user_id: data.user.id,
-          competition_id: GROUPS_ID,
+          id: userId,
+          username: username.trim(),
+          full_name: username.trim(),
+          email,
           status: 'pending',
           payment_method: paymentMethod
         },
-        {
-          user_id: data.user.id,
-          competition_id: KNOCKOUT_ID,
-          status: 'pending',
-          payment_method: paymentMethod
-        }
-      ])
+        { onConflict: 'id' }
+      )
 
-    if (entriesError) throw entriesError
+      if (profileError) throw profileError
 
-    // 4. Redirigir
-    if (paymentMethod === 'mp') {
-      const response = await fetch('/api/create-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: data.user.id, userEmail: email })
+      const { error: entriesError } = await supabase.from('competition_entries').insert({
+        user_id: userId,
+        competition_id: GROUPS_ID,
+        status: 'pending',
+        payment_method: paymentMethod
       })
 
-      if (!response.ok) throw new Error(`Error al crear el pago (${response.status})`)
+      if (entriesError) throw entriesError
 
-      const paymentData = await response.json()
-      if (!paymentData.init_point) throw new Error('No se recibió el link de pago de MercadoPago')
+      if (paymentMethod === 'mp') {
+        const response = await fetch('/api/create-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            userEmail: email,
+            userName: username.trim(),
+            competition_id: GROUPS_ID,
+            amount: 40000
+          })
+        })
 
-      // Salir completamente de la app → evita conflicto con AuthContext
-      window.location.href = paymentData.init_point
-    } else {
-      // Transfer: redirigir fuera del router para forzar reload limpio
-      window.location.href = '/payment/pending'
+        if (!response.ok) {
+          throw new Error(`Error al crear el pago (${response.status})`)
+        }
+
+        const paymentData = await response.json()
+        if (!paymentData.init_point) {
+          throw new Error('No se recibió el link de pago de MercadoPago')
+        }
+
+        window.location.href = paymentData.init_point
+        return
+      }
+
+      navigate('/registro-exitoso?method=transfer', { replace: true })
+    } catch (err) {
+      setError(err.message || 'Ocurrió un error. Intentá de nuevo.')
+      setLoading(false)
     }
-
-  } catch (err) {
-    setError(err.message || 'Ocurrió un error. Intentá de nuevo.')
-    setLoading(false)
   }
-}
-
 
   const isMP = paymentMethod === 'mp'
 
@@ -269,10 +267,7 @@ function StepRegisterForm({ paymentMethod, onBack }) {
 
         <h2 className="auth-title">Crear cuenta</h2>
         <p className="auth-subtitle">
-          {isMP
-            ? '💳 Pagarás con MercadoPago al finalizar'
-            : '🏦 Recordá enviar el comprobante por WhatsApp'
-          }
+          {isMP ? '💳 Pagarás con MercadoPago al finalizar' : '🏦 Recordá enviar el comprobante por WhatsApp'}
         </p>
 
         {error && <div className="auth-error">{error}</div>}
@@ -329,12 +324,7 @@ function StepRegisterForm({ paymentMethod, onBack }) {
             disabled={loading}
             style={{ marginTop: '0.5rem' }}
           >
-            {loading
-              ? 'Procesando...'
-              : isMP
-                ? '💳 Crear cuenta e ir a MercadoPago'
-                : '✅ Crear mi cuenta'
-            }
+            {loading ? 'Procesando...' : isMP ? '💳 Crear cuenta e ir a MercadoPago' : '✅ Crear mi cuenta'}
           </button>
         </form>
 
@@ -346,8 +336,6 @@ function StepRegisterForm({ paymentMethod, onBack }) {
   )
 }
 
-
-// ─── Componente principal con máquina de estados ──────────────────────────
 export default function Register() {
   const [step, setStep] = useState('method')
   const [paymentMethod, setPaymentMethod] = useState(null)
@@ -363,10 +351,7 @@ export default function Register() {
 
   if (step === 'transfer-info') {
     return (
-      <StepTransferInfo
-        onConfirm={() => setStep('form')}
-        onBack={() => setStep('method')}
-      />
+      <StepTransferInfo onConfirm={() => setStep('form')} onBack={() => setStep('method')} />
     )
   }
 

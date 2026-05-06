@@ -2,8 +2,8 @@ import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-export default function PaymentPending() {
-  const { user, profile, loading, profileLoading, signingOut, isPending, isActive } = useAuth()
+export default function KnockoutPage() {
+  const { user, profile, loading, profileLoading, signingOut } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -11,21 +11,15 @@ export default function PaymentPending() {
 
     if (!user) {
       navigate('/login', { replace: true })
-      return
     }
-
-    if (isActive || profile?.status === 'active') {
-      navigate('/dashboard', { replace: true })
-      return
-    }
-  }, [user, profile, loading, profileLoading, signingOut, isActive, navigate])
+  }, [user, loading, profileLoading, signingOut, navigate])
 
   if (loading || profileLoading || signingOut) {
     return (
       <div className="auth-container">
         <div className="auth-card">
           <h2 className="auth-title">Cargando...</h2>
-          <p className="auth-subtitle">Verificando tu estado de pago</p>
+          <p className="auth-subtitle">Verificando competencia</p>
         </div>
       </div>
     )
@@ -36,11 +30,11 @@ export default function PaymentPending() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h2 className="auth-title">Pago pendiente</h2>
+        <h2 className="auth-title">Competencia knockout</h2>
 
         <p className="auth-subtitle">
-          Tu cuenta todavía está pendiente de confirmación. En breve te vamos a habilitar
-          cuando verifiquemos tu pago.
+          Bienvenido a la competencia knockout. Acá vas a poder ver el estado de tu inscripción
+          y acceder a tus pronósticos cuando esté habilitada.
         </p>
 
         <div
@@ -48,20 +42,20 @@ export default function PaymentPending() {
             marginTop: '1rem',
             padding: '1rem',
             borderRadius: '12px',
-            background: 'rgba(251, 191, 36, 0.12)',
-            color: '#facc15'
+            background: 'rgba(147, 51, 234, 0.12)',
+            color: '#c084fc'
           }}
         >
-          Estado actual: <strong>{profile?.status || 'pendiente'}</strong>
+          Estado de cuenta: <strong>{profile?.status || 'pendiente'}</strong>
         </div>
 
         <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <Link to="/" className="btn-mercadopago" style={{ textAlign: 'center' }}>
-            Volver al inicio
+          <Link to="/knockout/join" className="btn-mercadopago" style={{ textAlign: 'center' }}>
+            Sumarme
           </Link>
 
-          <Link to="/login" className="auth-link" style={{ textAlign: 'center' }}>
-            Iniciar sesión
+          <Link to="/" className="auth-link" style={{ textAlign: 'center' }}>
+            Volver al inicio
           </Link>
         </div>
       </div>

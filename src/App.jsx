@@ -12,71 +12,90 @@ import PaymentFailure from './pages/PaymentFailure'
 import PaymentPending from './pages/PaymentPending'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
-import Knockout from './pages/Knockout'        
-import KnockoutAdmin from './pages/KnockoutAdmin' 
+import Knockout from './pages/Knockout'
+import KnockoutAdmin from './pages/KnockoutAdmin'
+import RegistroExitoso from './pages/RegistroExitoso'
+import KnockoutPage from './pages/KnockoutPage'
+import KnockoutComingSoon from './pages/KnockoutComingSoon'
+import KnockoutJoin from './pages/KnockoutJoin'
 
 const ROUTES_WITHOUT_NAVBAR = ['/', '/login', '/register', '/forgot-password', '/reset-password']
 
 function LoadingScreen() {
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      background: 'var(--bg-primary, #0f172a)'
-    }}>
-      <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '1rem' }}>
-        Cargando...
-      </p>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        background: 'var(--bg-primary, #0f172a)'
+      }}
+    >
+      <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '1rem' }}>Cargando...</p>
     </div>
   )
 }
 
 function PrivateRoute({ children }) {
-  const { user, profile, loading, profileLoading, signingOut, isActive, isPending, isBlocked, isAdmin, isSuperAdmin } = useAuth()
+  const {
+    user,
+    profile,
+    loading,
+    profileLoading,
+    signingOut,
+    isAdmin,
+    isSuperAdmin,
+    isPending,
+    isBlocked,
+    isActive
+  } = useAuth()
   const location = useLocation()
 
-  if (loading || signingOut || profileLoading) return <LoadingScreen />  // ← agregar profileLoading
+  if (loading || signingOut || profileLoading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
   if (!profile) return <LoadingScreen />
-  
+
+  // Admins pasan siempre
   if (isAdmin || isSuperAdmin) return children
 
+  // Pending: solo puede ver /payment/pending
   if (isPending) {
     if (location.pathname === '/payment/pending') return children
     return <Navigate to="/payment/pending" replace />
   }
 
-  if (isBlocked) return <Navigate to="/login" replace />
-  if (!isActive) return <Navigate to="/login" replace />
+  // Bloqueado o inactivo
+  if (isBlocked || !isActive) return <Navigate to="/login" replace />
 
   return children
 }
 
 function AdminRoute({ children }) {
-  const { user, loading, profileLoading, isAdmin, signingOut } = useAuth()  // ← agregar profileLoading
-  if (loading || signingOut || profileLoading) return <LoadingScreen />      // ← agregar profileLoading
+  const { user, loading, profileLoading, isAdmin, isSuperAdmin, signingOut } = useAuth()
+
+  if (loading || signingOut || profileLoading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
-  if (!isAdmin) return <Navigate to="/" replace />
+  if (!isAdmin && !isSuperAdmin) return <Navigate to="/" replace />
+
   return children
 }
 
 function PublicRoute({ children }) {
-  const { user, profile, loading, profileLoading, signingOut } = useAuth()  // ← agregar profileLoading
-  if (loading || signingOut || profileLoading) return <LoadingScreen />      // ← agregar profileLoading
+  const { user, profile, loading, profileLoading, signingOut } = useAuth()
+
+  if (loading || signingOut || profileLoading) return <LoadingScreen />
   if (user && !profile) return <LoadingScreen />
-  
-  if (user && profile && profile.status === 'pending') return children
-  
-  return user ? <Navigate to="/dashboard" replace /> : children
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return children
 }
 
 function AppContent() {
-  const { signingOut } = useAuth()
   const location = useLocation()
-
- // if (signingOut) return <LoadingScreen />
 
   const showNavbar = !ROUTES_WITHOUT_NAVBAR.includes(location.pathname)
 
@@ -103,6 +122,8 @@ function AppContent() {
             </PublicRoute>
           }
         />
+
+        <Route path="/registro-exitoso" element={<RegistroExitoso />} />
 
         <Route
           path="/forgot-password"
@@ -161,17 +182,59 @@ function AppContent() {
         />
 
         <Route
-          path="/payment/pending"
+          path="/knockout/page"
           element={
-             <PrivateRoute>
-                 <PaymentPending />
+            <PrivateRoute>
+              <KnockoutPage />
             </PrivateRoute>
-           }
+          }
         />
 
-        <Route path="/payment/success" element={<PaymentSuccess />} />
-        <Route path="/payment/failure" element={<PaymentFailure />} />
-        
+        <Route
+          path="/knockout/coming-soon"
+          element={
+            <PrivateRoute>
+              <KnockoutComingSoon />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/knockout/join"
+          element={
+            <PrivateRoute>
+              <KnockoutJoin />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/payment/pending"
+          element={
+            <PublicRoute>
+              <PaymentPending />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/payment/success"
+          element={
+            <PublicRoute>
+              <PaymentSuccess />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/payment/failure"
+          element={
+            <PublicRoute>
+              <PaymentFailure />
+            </PublicRoute>
+          }
+        />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

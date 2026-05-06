@@ -1,19 +1,7 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-
-function getErrorMessage(error) {
-  if (!error) return ''
-  const msg = error.message?.toLowerCase() ?? ''
-
-  if (msg.includes('invalid login credentials')) return 'Email o contraseña incorrectos'
-  if (msg.includes('email not confirmed')) return 'Confirmá tu email antes de ingresar. Revisá tu casilla.'
-  if (msg.includes('too many requests') || error.status === 429) {
-    return 'Demasiados intentos. Esperá unos minutos antes de volver a intentar.'
-  }
-  return 'Error al iniciar sesión. Intentá de nuevo.'
-}
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -22,41 +10,43 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
 
   const navigate = useNavigate()
-  const { user, loading: authLoading } = useAuth()
+  const { user, profile, loading: authLoading, profileLoading, signingOut } = useAuth()
 
   useEffect(() => {
-    if (!authLoading && user) {
-      navigate('/dashboard', { replace: true })
-    }
-  }, [user, authLoading, navigate])
+    if (authLoading || profileLoading || signingOut) return
+    if (!user || !profile) return
 
-  const handleLogin = async (e) => {
+    if (profile.status === 'pending') {
+      navigate('/payment/pending', { replace: true })
+      return
+    }
+
+    if (profile.status === 'active') {
+      navigate('/dashboard', { replace: true })
+      return
+    }
+
+    if (profile.status === 'blocked') {
+      navigate('/login', { replace: true })
+    }
+  }, [user, profile, authLoading, profileLoading, signingOut, navigate])
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password
       })
 
-      if (signInError) {
-        setError(getErrorMessage(signInError))
-        setLoading(false)
-        return
-      }
+      if (error) throw error
 
-      if (!data?.session) {
-        setError('No se pudo crear la sesión. Intentá nuevamente.')
-        setLoading(false)
-        return
-      }
-
-      await supabase.auth.getSession()
-      setLoading(false)
+      // La redirección la hace el useEffect cuando el profile esté listo
     } catch (err) {
-      setError('Error de conexión. Verificá tu internet e intentá de nuevo.')
+      setError(err.message || 'No se pudo iniciar sesión')
       setLoading(false)
     }
   }
@@ -64,12 +54,12 @@ export default function Login() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1 className="auth-title">⚽ Prode Mundial 2026</h1>
-        <p className="auth-subtitle">Ingresá a tu cuenta</p>
+        <h2 className="auth-title">Iniciar sesión</h2>
+        <p className="auth-subtitle">Accedé con tu email y contraseña</p>
 
         {error && <div className="auth-error">{error}</div>}
 
-        <form className="auth-form" onSubmit={handleLogin}>
+        <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Email</label>
             <input
@@ -87,32 +77,25 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="Tu contraseña"
               required
             />
           </div>
 
-          <button
-            type="submit"
-            className="btn btn-primary btn-full"
-            disabled={loading}
-          >
-            {loading ? 'Ingresando...' : 'Ingresar'}
+          <button type="submit" className="btn-mercadopago" disabled={loading}>
+            {loading ? 'Ingresando...' : 'Entrar'}
           </button>
-
-          <div style={{ textAlign: 'center', marginTop: '0.75rem' }}>
-            <Link
-              to="/forgot-password"
-              style={{ fontSize: '0.85rem', color: 'var(--color-accent)' }}
-            >
-              ¿Olvidaste tu contraseña?
-            </Link>
-          </div>
         </form>
 
-        <div className="auth-footer">
-          ¿No tenés cuenta? <Link to="/register">Registrate</Link>
+        <div style={{ marginTop: '1rem' }}>
+          <Link to="/forgot-password" className="auth-link">
+            ¿Olvidaste tu contraseña?
+          </Link>
         </div>
+
+        <p className="auth-link" style={{ marginTop: '1rem' }}>
+          ¿No tenés cuenta? <Link to="/register">Registrate</Link>
+        </p>
       </div>
     </div>
   )
