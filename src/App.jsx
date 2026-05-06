@@ -109,7 +109,8 @@ export default function App() {
   return (
     <Routes>
       {/* ── Públicas: solo para NO logueados ─────────────────────────────── */}
-      <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+     // App.jsx
+      <Route path="/" element={<OpenRoute><Landing /></OpenRoute>} />
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
