@@ -114,7 +114,7 @@ export function AuthProvider({ children }) {
 
           if (session?.user) {
             setUser(session.user)
-            await fetchProfile(session.user.id)
+            fetchProfile(session.user.id)
           }
         }
       }

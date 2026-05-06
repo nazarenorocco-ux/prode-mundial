@@ -3,13 +3,12 @@ import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
   const { user, isAdmin, signOut, signingOut } = useAuth()
-  const navigate  = useNavigate()
-  const location  = useLocation()
+  const navigate = useNavigate()
+  const location = useLocation()
 
   const handleSignOut = async () => {
-    navigate('/', { replace: true })
     await signOut()
-    window.location.reload()
+    navigate('/', { replace: true })
   }
 
   const isActive = (path) => location.pathname === path ? 'active' : ''
@@ -29,7 +28,7 @@ export default function Navbar() {
         {user ? (
           <>
             <Link to="/dashboard" className={`navbar-link ${isActive('/dashboard')}`}>
-              Predicciones
+              Fase de Grupos
             </Link>
             <Link to="/leaderboard" className={`navbar-link ${isActive('/leaderboard')}`}>
               Tabla
@@ -37,19 +36,22 @@ export default function Navbar() {
             <Link to="/knockout" className={`navbar-link ${isActive('/knockout')}`}>
               Eliminatorias
             </Link>
+
             {isAdmin && (
-               <>
-            <Link to="/admin" className={`navbar-link ${isActive('/admin')}`}>
-                Admin
-            </Link>
-            <Link to="/admin/knockout" className={`navbar-link ${isActive('/admin/knockout')}`}>
-                  Admin KO
+              <>
+                <Link to="/admin" className={`navbar-link ${isActive('/admin')}`}>
+                  Admin
                 </Link>
-            </>
+                <Link to="/admin/knockout" className={`navbar-link ${isActive('/admin/knockout')}`}>
+                  Admin Eliminatorias
+                </Link>
+              </>
             )}
+
             <span className="navbar-user" title={user.email}>
               {displayName}
             </span>
+
             <button
               className="btn btn-secondary"
               onClick={handleSignOut}

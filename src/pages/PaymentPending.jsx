@@ -52,16 +52,12 @@ export default function PaymentPending() {
             color: '#facc15'
           }}
         >
-          Estado actual: <strong>{profile?.status || 'pendiente'}</strong>
+          Estado actual: <strong>{profile?.status || 'pending'}</strong>
         </div>
 
         <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <Link to="/" className="btn-mercadopago" style={{ textAlign: 'center' }}>
             Volver al inicio
-          </Link>
-
-          <Link to="/login" className="auth-link" style={{ textAlign: 'center' }}>
-            Iniciar sesión
           </Link>
         </div>
       </div>
