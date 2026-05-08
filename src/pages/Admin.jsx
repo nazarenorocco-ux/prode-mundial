@@ -893,7 +893,7 @@ export default function Admin() {
           {/* Fila 4: Registro Knockout */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ fontSize: '0.82rem', color: '#c4b5fd' }}>
-              Registro Fase Knockout:{' '}
+              Registro Fase Eliminatorias:{' '}
               <strong style={{ color: knockoutRegistration === 'true' ? '#4ade80' : '#f87171' }}>
                 {knockoutRegistration === 'true' ? '🟢 Abierto' : '🔴 Cerrado'}
               </strong>
@@ -1172,7 +1172,7 @@ export default function Admin() {
       {/* ══════════════════════════════════════════════════════════════════════
           TAB: KNOCKOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      {activeTab === 'Eliminatorias' && (
+      {activeTab === 'knockout' && (
         <div>
           {/* Métricas */}
           <div style={{
