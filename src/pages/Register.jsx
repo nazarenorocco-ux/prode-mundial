@@ -28,7 +28,7 @@ const COMPETITION_CONFIG = {
       id: KNOCKOUT_ID,
       settingKey: 'knockout_registration_open',
       monto: '$20.000 ARS',
-      label: 'Fase Knockout',
+      label: 'Fase de Eliminatorias',
       emoji: '🏆',
     }
   }
@@ -152,7 +152,7 @@ function StepTransferInfo({ onConfirm, onBack, monto }) {
         <div className="transfer-note">
           <span>⚠️</span>
           <p>
-            Tu cuenta quedará <strong>pendiente</strong> hasta confirmar el pago.
+            Tu cuenta quedará <strong>pendiente</strong> hasta confirmar la donación.
             Te avisamos por WhatsApp cuando esté activa.
           </p>
         </div>
@@ -284,7 +284,7 @@ function StepRegisterForm({ paymentMethod, onBack, competitionId, config }) {
 
         <h2 className="auth-title">Crear cuenta</h2>
         <p className="auth-subtitle">
-          {config.emoji} <strong>{config.label}</strong> — {isMP ? '💳 Pagarás con MercadoPago al finalizar' : '🏦 Recordá enviar el comprobante por WhatsApp'}
+          {config.emoji} <strong>{config.label}</strong> — {isMP ? '💳 Donarás con MercadoPago al finalizar' : '🏦 Recordá enviar el comprobante por WhatsApp'}
         </p>
 
 
