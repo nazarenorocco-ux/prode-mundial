@@ -38,6 +38,8 @@ export default function Landing() {
   const [displayCount, setDisplayCount]       = useState(0);
   const [upcomingMatches, setUpcomingMatches] = useState([]);
   const [loading, setLoading]                 = useState(true);
+  const [groupsOpen, setGroupsOpen]           = useState(false);
+  const [knockoutOpen, setKnockoutOpen]       = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -56,6 +58,18 @@ export default function Landing() {
         .limit(5);
 
       setUpcomingMatches(matches || []);
+      const { data: settings } = await supabase
+        .from('settings')
+        .select('key, value')
+        .in('key', ['groups_registration_open', 'knockout_registration_open']);
+
+      if (settings) {
+        settings.forEach(s => {
+          if (s.key === 'groups_registration_open')   setGroupsOpen(s.value === 'true');
+          if (s.key === 'knockout_registration_open') setKnockoutOpen(s.value === 'true');
+        });
+      }
+
       setLoading(false);
     }
 
@@ -100,10 +114,22 @@ export default function Landing() {
             Prode Mundial<br /><span>2026</span>
           </h1>
           <p className="hero-date">Junio — Julio 2026</p>
-          <div className="hero-buttons">
-            <button className="hero-btn" onClick={() => navigate('/register')}>
-              ¡Anotate ahora!
-            </button>
+         <div className="hero-buttons">
+            {groupsOpen && (
+              <button className="hero-btn" onClick={() => navigate('/register')}>
+                ¡Anotate a Groups!
+              </button>
+            )}
+            {knockoutOpen && (
+              <button className="hero-btn" onClick={() => navigate('/register?competition=knockout')}>
+                ¡Anotate al Knockout!
+              </button>
+            )}
+            {!groupsOpen && !knockoutOpen && (
+              <button className="hero-btn" disabled style={{ opacity: 0.6, cursor: 'default' }}>
+                Inscripciones cerradas
+              </button>
+            )}
             <button className="hero-btn hero-btn-secondary" onClick={() => navigate('/login')}>
               Ya tengo cuenta
             </button>
@@ -192,6 +218,50 @@ export default function Landing() {
           ⏱ Las predicciones se cierran <strong>30 minutos antes</strong> de cada partido
         </div>
       </section>
+        
+        {/* ── COMPETENCIAS ── */}
+        {(groupsOpen || knockoutOpen) && (
+          <section className="landing-competitions">
+            <h2 className="section-title">🏆 Competencias disponibles</h2>
+            <div className="competitions-grid">
+
+              {groupsOpen && (
+                <div className="competition-card groups-card">
+                  <div className="competition-icon">⚽</div>
+                  <h3>Fase de Grupos</h3>
+                  <p>Predecí los 48 partidos de la fase de grupos del Mundial 2026</p>
+                  <ul className="competition-features">
+                    <li>✅ 48 partidos para predecir</li>
+                    <li>✅ 3 pts resultado exacto / 1 pt ganador</li>
+                    <li>✅ Cierre 30 min antes de cada partido</li>
+                  </ul>
+                  <div className="competition-fee">$40.000 ARS</div>
+                  <button className="hero-btn" onClick={() => navigate('/register')}>
+                    Inscribirme a Groups
+                  </button>
+                </div>
+              )}
+
+              {knockoutOpen && (
+                <div className="competition-card knockout-card">
+                  <div className="competition-icon">🏆</div>
+                  <h3>Fase Knockout</h3>
+                  <p>Predecí los partidos eliminatorios incluyendo penales y el campeón</p>
+                  <ul className="competition-features">
+                    <li>✅ R32, R16, QF, SF, Final</li>
+                    <li>✅ Incluye penales y prórroga</li>
+                    <li>✅ Predicción del campeón (10 pts)</li>
+                  </ul>
+                  <div className="competition-fee">$20.000 ARS</div>
+                  <button className="hero-btn" onClick={() => navigate('/register?competition=knockout')}>
+                    Inscribirme al Knockout
+                  </button>
+                </div>
+              )}
+
+            </div>
+          </section>
+        )}
 
       {/* ── PRÓXIMOS PARTIDOS ── */}
       <section className="landing-matches">
@@ -245,15 +315,30 @@ export default function Landing() {
         <h2>¿Estás listo para competir?</h2>
         <p>Anotate antes de que empiece el torneo y ganá tu parte del pozo</p>
         <div className="hero-buttons">
-          <button className="hero-btn" onClick={() => navigate('/register')}>
-            ¡Quiero participar!
-          </button>
+          {groupsOpen && (
+            <button className="hero-btn" onClick={() => navigate('/register')}>
+              ¡Quiero participar en Groups!
+            </button>
+          )}
+          {knockoutOpen && (
+            <button className="hero-btn" onClick={() => navigate('/register?competition=knockout')}>
+              ¡Quiero participar en Knockout!
+            </button>
+          )}
+          {!groupsOpen && !knockoutOpen && (
+            <p style={{ color: '#c4b5fd', fontWeight: '600' }}>
+              Las inscripciones están cerradas por el momento
+            </p>
+          )}
           <button className="hero-btn hero-btn-secondary" onClick={() => navigate('/login')}>
             Ya tengo cuenta
           </button>
         </div>
       </section>
 
-    </div>
-  );
-}
+
+          </div>
+        );
+      }
+      
+      
