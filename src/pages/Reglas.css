@@ -1,0 +1,379 @@
+.reglas-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  padding: 2rem 1.5rem 4rem;
+}
+
+.reglas-container {
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+/* ── HEADER ── */
+.reglas-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.reglas-back {
+  display: inline-block;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-decoration: none;
+  margin-bottom: 1.25rem;
+  transition: color 0.2s;
+}
+
+.reglas-back:hover {
+  color: var(--text-primary);
+}
+
+.reglas-title {
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  font-weight: 900;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.reglas-subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+/* ── BLOQUES ── */
+.reglas-block {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.reglas-block-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1.25rem;
+}
+
+.reglas-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: var(--accent-primary);
+  color: white;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.reglas-intro-text,
+.reglas-block-desc {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 1.25rem;
+}
+
+/* ── COMPETENCIAS BANNER ── */
+.reglas-comps-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.reglas-comp-card {
+  flex: 1;
+  min-width: 200px;
+  max-width: 260px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.25rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.reglas-comp-groups  { border-color: rgba(99, 102, 241, 0.4); }
+.reglas-comp-knockout { border-color: rgba(245, 158, 11, 0.4); }
+
+.reglas-comp-icon { font-size: 2rem; }
+
+.reglas-comp-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.reglas-comp-card p {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.reglas-comp-fee {
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: var(--accent-primary);
+  margin-top: 0.4rem;
+}
+
+.reglas-fee-knockout { color: #f59e0b; }
+
+.reglas-comp-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.reglas-comp-separator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  max-width: 130px;
+}
+
+.reglas-comp-separator span {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--text-muted);
+}
+
+.reglas-comp-separator p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ── TIP ── */
+.reglas-tip {
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1.1rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.reglas-tip strong { color: var(--text-primary); }
+
+/* ── PASOS ── */
+.reglas-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.9rem;
+}
+
+.reglas-step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.6rem;
+  padding: 1.25rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  position: relative;
+}
+
+.reglas-step-icon {
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+
+.reglas-step-item strong {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  margin-bottom: 0.15rem;
+}
+
+.reglas-step-item p {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.reglas-step-arrow { display: none; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .reglas-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── SCORING ── */
+.reglas-scoring-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.reglas-score-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 0.9rem;
+  text-align: center;
+}
+
+.reglas-score-exact   { border-color: var(--accent-success); }
+.reglas-score-outcome { border-color: var(--accent-primary); }
+.reglas-score-zero    { opacity: 0.6; }
+
+.reglas-score-pts {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--accent-success);
+  line-height: 1;
+  margin-bottom: 0.35rem;
+}
+
+.reglas-score-outcome .reglas-score-pts { color: var(--accent-primary); }
+.reglas-score-zero    .reglas-score-pts { color: var(--text-muted); }
+
+.reglas-score-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.4rem;
+}
+
+.reglas-score-desc {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 0.4rem;
+}
+
+.reglas-score-example {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── CAMPEÓN ── */
+.reglas-champion-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.1rem;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.06), var(--bg-secondary));
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  border-radius: var(--radius-md);
+}
+
+.reglas-champion-icon { font-size: 1.75rem; flex-shrink: 0; }
+
+.reglas-champion-banner strong {
+  display: block;
+  font-size: 0.9rem;
+  color: gold;
+  margin-bottom: 0.25rem;
+}
+
+.reglas-champion-banner p {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── DEADLINES ── */
+.reglas-deadlines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.reglas-deadline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+}
+
+.reglas-deadline-item span { font-size: 1.3rem; flex-shrink: 0; }
+
+.reglas-deadline-item strong {
+  display: block;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.reglas-deadline-item p {
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── CTA ── */
+.reglas-cta {
+  text-align: center;
+  padding: 2.5rem 1rem;
+}
+
+.reglas-cta p {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1.25rem;
+}
+
+.reglas-cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .reglas-scoring-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reglas-comps-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .reglas-comp-card {
+    max-width: 100%;
+  }
+
+  .reglas-comp-separator {
+    flex-direction: row;
+    max-width: 100%;
+    justify-content: center;
+  }
+}

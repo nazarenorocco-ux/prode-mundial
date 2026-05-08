@@ -17,6 +17,7 @@ import PaymentSuccess from './pages/PaymentSuccess'
 import PaymentFailure from './pages/PaymentFailure'
 import Admin from './pages/Admin'
 import KnockoutAdmin from './pages/KnockoutAdmin'
+import Reglas from './pages/Reglas';
 
 function PrivateRoute({ children }) {
   const { user, loading, profileLoading, signingOut, isPending, isBlocked, isActive, isAdmin, isSuperAdmin } = useAuth()
@@ -106,6 +107,7 @@ export default function App() {
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
       <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+      <Route path="/reglas" element={<Reglas />} />
 
       {/* ── Abiertas ──────────────────────────────────────────────────────── */}
       <Route path="/registro-exitoso" element={<OpenRoute><RegistroExitoso /></OpenRoute>} />
