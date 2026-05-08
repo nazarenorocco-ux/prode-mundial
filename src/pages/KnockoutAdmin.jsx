@@ -15,14 +15,18 @@ const ROUND_LABELS = {
 
 const COMPETITION_ID = '01030879-760e-4fe3-b329-7c09c623cc58';
 
-// Mapeo de slots a grupos para R32
-// Slot format: "1º Grupo A", "2º Grupo B", "3º Grupo A/B/C/D/E/F", etc.
+// Formato real: "1A" -> posición 1, grupo A
+//               "2B" -> posición 2, grupo B
+//               "3ABCDF" -> posición 3, grupos A/B/C/D/F
 function parseSlot(slot) {
   if (!slot) return null;
-  const match = slot.match(/^(\d+)º Grupo (.+)$/);
+  const match = slot.match(/^(\d+)([A-Z]+)$/);
   if (!match) return null;
-  return { position: parseInt(match[1]), groups: match[2].split('/') };
+  const position = parseInt(match[1]);
+  const groups = match[2].split(''); // "ABCDF" -> ["A","B","C","D","F"]
+  return { position, groups };
 }
+
 
 export default function KnockoutAdmin() {
   const [matches, setMatches] = useState([]);

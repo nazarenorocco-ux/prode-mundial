@@ -280,7 +280,7 @@ function MatchRow({ match, editingMatch, homeScore, awayScore, savingResult,
 }
 
 // ─── Sub-componente: Card de Knockout Entry ───────────────────────────────────
-function KnockoutEntryCard({ entry, confirmingId, onConfirm, onRevoke, isSuperAdmin }) {
+function KnockoutEntryCard({ entry, confirmingId, onConfirm, onRevoke, onDelete, isSuperAdmin }) {
   const profile     = entry.profiles
   const isPending   = entry.status === 'pending'
   const isActive    = entry.status === 'active'
@@ -412,6 +412,17 @@ function KnockoutEntryCard({ entry, confirmingId, onConfirm, onRevoke, isSuperAd
                 }}
               >
                 ↩️ Revocar
+              </button>
+            )}
+
+            {isSuperAdmin && (
+              <button
+                className="btn btn-danger"
+                onClick={() => onDelete(entry)}
+                disabled={confirmingId === entry.id}
+                style={{ fontSize: '0.78rem', padding: '0.3rem 0.6rem' }}
+              >
+                🗑️ Eliminar
               </button>
             )}
           </div>
@@ -609,6 +620,37 @@ export default function Admin() {
           .from('competition_entries')
           .update({ status: 'pending' })
           .eq('id', entry.id)
+        refetchKnockout()
+      }
+    })
+  }
+
+  // ── Eliminar entry Knockout ──────────────────────────────────────────────────
+  const handleDeleteKnockoutEntry = (entry) => {
+    setModal({
+      message: `¿Eliminar la entrada de Knockout de "${entry.profiles?.username}"? Se eliminará la entry y sus predicciones.`,
+      onConfirm: async () => {
+        setModal(null)
+        // 1. Eliminar knockout_predictions del usuario para esta competencia
+        await supabase
+          .from('knockout_predictions')
+          .delete()
+          .eq('user_id', entry.user_id)
+          .eq('competition_id', KNOCKOUT_ID)
+
+        // 2. Eliminar champion_predictions
+        await supabase
+          .from('champion_predictions')
+          .delete()
+          .eq('user_id', entry.user_id)
+          .eq('competition_id', KNOCKOUT_ID)
+
+        // 3. Eliminar la competition_entry
+        await supabase
+          .from('competition_entries')
+          .delete()
+          .eq('id', entry.id)
+
         refetchKnockout()
       }
     })
@@ -1137,6 +1179,7 @@ export default function Admin() {
                   confirmingId={confirmingEntryId}
                   onConfirm={handleConfirmKnockoutEntry}
                   onRevoke={handleRevokeKnockoutEntry}
+                  onDelete={handleDeleteKnockoutEntry} 
                   isSuperAdmin={isSuperAdmin}
                 />
               ))}
