@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 
 const TRANSFER_INFO = {
   alias: 'borro.214',
@@ -15,6 +15,23 @@ const TRANSFER_INFO = {
 const USERNAME_MIN = 2
 const USERNAME_MAX = 30
 const GROUPS_ID = 'c4e57607-7fe8-4a0a-b8a1-b0afedb9620b'
+const KNOCKOUT_ID = '01030879-760e-4fe3-b329-7c09c623cc58'
+const COMPETITION_CONFIG = {
+    groups: {
+      id: GROUPS_ID,
+      settingKey: 'groups_registration_open',
+      monto: '$40.000 ARS',
+      label: 'Fase de Grupos',
+      emoji: '⚽',
+    },
+    knockout: {
+      id: KNOCKOUT_ID,
+      settingKey: 'knockout_registration_open',
+      monto: '$20.000 ARS',
+      label: 'Fase Knockout',
+      emoji: '🏆',
+    }
+  }
 
 // ─── Ícono de WhatsApp ─────────────────────────────────────────────────────
 function WhatsAppIcon() {
@@ -33,13 +50,13 @@ function BackButton({ onClick }) {
   )
 }
 
-function StepPaymentMethod({ onSelect }) {
+function StepPaymentMethod({ onSelect, config }) {
   return (
     <div className="auth-container">
       <div className="auth-card">
         <h2 className="auth-title">¿Cómo querés donar?</h2>
         <p className="auth-subtitle">
-          La inscripción se realiza con una donación de <strong>$40.000 ARS</strong>
+          Inscripción a la <strong>{config.label}</strong> por una donación de <strong>{config.monto}</strong>
         </p>
 
         <div className="payment-buttons" style={{ marginTop: '2rem' }}>
@@ -66,7 +83,7 @@ function StepPaymentMethod({ onSelect }) {
   )
 }
 
-function StepTransferInfo({ onConfirm, onBack }) {
+function StepTransferInfo({ onConfirm, onBack, monto }) {
   const [copied, setCopied] = useState(null)
 
   const copyToClipboard = (text, field) => {
@@ -86,7 +103,7 @@ function StepTransferInfo({ onConfirm, onBack }) {
             Datos para transferir
           </h2>
           <p className="auth-subtitle">
-            Realizá una transferencia de <strong style={{ color: '#63b3ed' }}>{TRANSFER_INFO.monto}</strong> a:
+            Realizá una transferencia de <strong style={{ color: '#63b3ed' }}>{monto}</strong> a:
           </p>
         </div>
 
@@ -148,7 +165,7 @@ function StepTransferInfo({ onConfirm, onBack }) {
   )
 }
 
-function StepRegisterForm({ paymentMethod, onBack }) {
+function StepRegisterForm({ paymentMethod, onBack, competitionId, config }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -218,7 +235,7 @@ function StepRegisterForm({ paymentMethod, onBack }) {
 
       const { error: entriesError } = await supabase.from('competition_entries').insert({
         user_id: userId,
-        competition_id: GROUPS_ID,
+        competition_id: competitionId,
         status: 'pending',
         payment_method: paymentMethod
       })
@@ -233,8 +250,9 @@ function StepRegisterForm({ paymentMethod, onBack }) {
             userId,
             userEmail: email,
             userName: username.trim(),
-            competition_id: GROUPS_ID,
+            competition_id: competitionId,
           })
+
         })
 
         if (!response.ok) {
@@ -266,8 +284,9 @@ function StepRegisterForm({ paymentMethod, onBack }) {
 
         <h2 className="auth-title">Crear cuenta</h2>
         <p className="auth-subtitle">
-          {isMP ? '💳 Pagarás con MercadoPago al finalizar' : '🏦 Recordá enviar el comprobante por WhatsApp'}
+          {config.emoji} <strong>{config.label}</strong> — {isMP ? '💳 Pagarás con MercadoPago al finalizar' : '🏦 Recordá enviar el comprobante por WhatsApp'}
         </p>
+
 
         {error && <div className="auth-error">{error}</div>}
 
@@ -336,29 +355,31 @@ function StepRegisterForm({ paymentMethod, onBack }) {
 }
 
 export default function Register() {
+  const [searchParams] = useSearchParams()
+  const competitionType = searchParams.get('competition') === 'knockout' ? 'knockout' : 'groups'
+  const config = COMPETITION_CONFIG[competitionType]
+
   const [step, setStep] = useState('method')
   const [paymentMethod, setPaymentMethod] = useState(null)
-  const [registrationOpen, setRegistrationOpen] = useState(null) // null = cargando
+  const [registrationOpen, setRegistrationOpen] = useState(null)
 
-  // Chequear si el registro está abierto
   useEffect(() => {
     const checkRegistration = async () => {
       const { data } = await supabase
         .from('settings')
         .select('value')
-        .eq('key', 'groups_registration_open')
+        .eq('key', config.settingKey)
         .single()
       setRegistrationOpen(data?.value === 'true')
     }
     checkRegistration()
-  }, [])
+  }, [config.settingKey])
 
   const handleSelectMethod = (method) => {
     setPaymentMethod(method)
     setStep(method === 'transfer' ? 'transfer-info' : 'form')
   }
 
-  // Cargando
   if (registrationOpen === null) {
     return (
       <div className="auth-container">
@@ -370,7 +391,6 @@ export default function Register() {
     )
   }
 
-  // Registro cerrado
   if (!registrationOpen) {
     return (
       <div className="auth-container">
@@ -378,7 +398,7 @@ export default function Register() {
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
           <h2 className="auth-title">Inscripción cerrada</h2>
           <p className="auth-subtitle" style={{ marginBottom: '1.5rem' }}>
-            El registro para la Fase de Grupos ya está cerrado.<br />
+            El registro para la <strong>{config.label}</strong> ya está cerrado.<br />
             Seguí el prode en redes para enterarte de novedades.
           </p>
           <Link to="/login" className="btn btn-primary" style={{ display: 'inline-block' }}>
@@ -390,12 +410,16 @@ export default function Register() {
   }
 
   if (step === 'method') {
-    return <StepPaymentMethod onSelect={handleSelectMethod} />
+    return <StepPaymentMethod onSelect={handleSelectMethod} config={config} />
   }
 
   if (step === 'transfer-info') {
     return (
-      <StepTransferInfo onConfirm={() => setStep('form')} onBack={() => setStep('method')} />
+      <StepTransferInfo
+        onConfirm={() => setStep('form')}
+        onBack={() => setStep('method')}
+        monto={config.monto}
+      />
     )
   }
 
@@ -404,9 +428,12 @@ export default function Register() {
       <StepRegisterForm
         paymentMethod={paymentMethod}
         onBack={() => setStep(paymentMethod === 'transfer' ? 'transfer-info' : 'method')}
+        competitionId={config.id}
+        config={config}
       />
     )
   }
 
   return null
 }
+
