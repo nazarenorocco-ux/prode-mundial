@@ -23,7 +23,7 @@ export default function PaymentPending() {
 
   const handleVolverAlInicio = async () => {
     await supabase.auth.signOut()
-    navigate('/', { replace: true })
+    window.location.href = '/'
   }
 
   if (loading || profileLoading || signingOut) {
