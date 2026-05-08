@@ -1172,7 +1172,7 @@ export default function Admin() {
       {/* ══════════════════════════════════════════════════════════════════════
           TAB: KNOCKOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      {activeTab === 'knockout' && (
+      {activeTab === 'Eliminatorias' && (
         <div>
           {/* Métricas */}
           <div style={{
