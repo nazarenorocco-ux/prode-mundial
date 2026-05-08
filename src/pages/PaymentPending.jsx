@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabaseClient'
 
 export default function PaymentPending() {
-  const { user, profile, loading, profileLoading, signingOut, isPending, isActive } = useAuth()
+  const { user, profile, loading, profileLoading, signingOut, isActive } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -19,6 +20,11 @@ export default function PaymentPending() {
       return
     }
   }, [user, profile, loading, profileLoading, signingOut, isActive, navigate])
+
+  const handleVolverAlInicio = async () => {
+    await supabase.auth.signOut()
+    navigate('/', { replace: true })
+  }
 
   if (loading || profileLoading || signingOut) {
     return (
@@ -56,9 +62,13 @@ export default function PaymentPending() {
         </div>
 
         <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <Link to="/" className="btn-mercadopago" style={{ textAlign: 'center' }}>
+          <button
+            onClick={handleVolverAlInicio}
+            className="btn-mercadopago"
+            style={{ textAlign: 'center', cursor: 'pointer', border: 'none' }}
+          >
             Volver al inicio
-          </Link>
+          </button>
         </div>
       </div>
     </div>
