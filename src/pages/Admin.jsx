@@ -17,49 +17,65 @@ function useAdminPlayers() {
     setLoading(true)
     setError(null)
 
-    // Solo traemos usuarios que tienen entry en Groups (activa o pendiente)
-    const { data, error } = await supabase
-      .from('competition_entries')
-      .select(`
-        id,
-        status,
-        payment_method,
-        user_id,
-        profiles (
+    const [{ data: entriesData, error: entriesError }, { data: adminsData, error: adminsError }] = await Promise.all([
+      // Query 1: usuarios con entry en Groups
+      supabase
+        .from('competition_entries')
+        .select(`
           id,
-          username,
-          email,
-          full_name,
           status,
-          is_admin,
-          is_superadmin,
           payment_method,
-          points,
-          created_at
-        )
-      `)
-      .eq('competition_id', GROUPS_ID)
-      .order('id', { ascending: false })
+          user_id,
+          profiles (
+            id, username, email, full_name,
+            status, is_admin, is_superadmin,
+            payment_method, points, created_at
+          )
+        `)
+        .eq('competition_id', GROUPS_ID)
+        .order('id', { ascending: false }),
 
-    if (error) {
-      setError(error.message)
+      // Query 2: admins y superadmins (por si no tienen entry)
+      supabase
+        .from('profiles')
+        .select('id, username, email, full_name, status, is_admin, is_superadmin, payment_method, points, created_at')
+        .or('is_admin.eq.true,is_superadmin.eq.true')
+    ])
+
+    if (entriesError || adminsError) {
+      setError((entriesError || adminsError).message)
       setPlayers([])
-    } else {
-      // Aplanamos: devolvemos el perfil con datos de la entry incorporados
-      const mapped = (data || []).map(entry => ({
-        ...entry.profiles,
-        entry_id:             entry.id,
-        entry_status:         entry.status,
-        entry_payment_method: entry.payment_method,
-      }))
-      setPlayers(mapped)
+      setLoading(false)
+      return
     }
+
+    // Aplanar entries
+    const fromEntries = (entriesData || []).map(entry => ({
+      ...entry.profiles,
+      entry_id:             entry.id,
+      entry_status:         entry.status,
+      entry_payment_method: entry.payment_method,
+    }))
+
+    // Agregar admins que no tengan entry (evitar duplicados por id)
+    const existingIds = new Set(fromEntries.map(p => p.id))
+    const fromAdmins = (adminsData || [])
+      .filter(a => !existingIds.has(a.id))
+      .map(a => ({
+        ...a,
+        entry_id:             null,
+        entry_status:         null,
+        entry_payment_method: null,
+      }))
+
+    setPlayers([...fromEntries, ...fromAdmins])
     setLoading(false)
   }, [])
 
   useEffect(() => { fetchPlayers() }, [fetchPlayers])
   return { players, loading, error, refetch: fetchPlayers }
 }
+
 
 // ─── Custom Hook: Partidos ────────────────────────────────────────────────────
 function useAdminMatches() {
