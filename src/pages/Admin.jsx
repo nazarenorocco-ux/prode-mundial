@@ -16,13 +16,44 @@ function useAdminPlayers() {
   const fetchPlayers = useCallback(async () => {
     setLoading(true)
     setError(null)
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
 
-    if (error) setError(error.message)
-    else setPlayers(data || [])
+    // Solo traemos usuarios que tienen entry en Groups (activa o pendiente)
+    const { data, error } = await supabase
+      .from('competition_entries')
+      .select(`
+        id,
+        status,
+        payment_method,
+        user_id,
+        profiles (
+          id,
+          username,
+          email,
+          full_name,
+          status,
+          is_admin,
+          is_superadmin,
+          payment_method,
+          points,
+          created_at
+        )
+      `)
+      .eq('competition_id', GROUPS_ID)
+      .order('id', { ascending: false })
+
+    if (error) {
+      setError(error.message)
+      setPlayers([])
+    } else {
+      // Aplanamos: devolvemos el perfil con datos de la entry incorporados
+      const mapped = (data || []).map(entry => ({
+        ...entry.profiles,
+        entry_id:             entry.id,
+        entry_status:         entry.status,
+        entry_payment_method: entry.payment_method,
+      }))
+      setPlayers(mapped)
+    }
     setLoading(false)
   }, [])
 
@@ -718,14 +749,15 @@ export default function Admin() {
       p.username?.toLowerCase().includes(playerSearch.toLowerCase()) ||
       p.email?.toLowerCase().includes(playerSearch.toLowerCase())
     const matchesFilter =
-      playerFilter === 'all'                                              ||
-      (playerFilter === 'active'    && p.status === 'active')            ||
-      (playerFilter === 'pending'   && p.status === 'pending')           ||
-      (playerFilter === 'mp'        && p.payment_method === 'mp')        ||
-      (playerFilter === 'transfer'  && p.payment_method === 'transfer')  ||
-      (playerFilter === 'efectivo'  && p.payment_method === 'efectivo')
+      playerFilter === 'all'                                                          ||
+      (playerFilter === 'active'   && p.entry_status === 'active')                   ||
+      (playerFilter === 'pending'  && p.entry_status === 'pending')                  ||
+      (playerFilter === 'mp'       && p.entry_payment_method === 'mp')               ||
+      (playerFilter === 'transfer' && p.entry_payment_method === 'transfer')         ||
+      (playerFilter === 'efectivo' && p.entry_payment_method === 'efectivo')
     return matchesSearch && matchesFilter
   })
+
 
   // ── Filtros Knockout entries ─────────────────────────────────────────────────
   const filteredKnockoutEntries = knockoutEntries.filter(e => {
@@ -746,12 +778,13 @@ export default function Admin() {
   // ── Métricas jugadores (Groups) ──────────────────────────────────────────────
   const metrics = {
     total:         players.length,
-    activos:       players.filter(p => p.status === 'active').length,
-    pending:       players.filter(p => p.status === 'pending').length,
-    mp:            players.filter(p => p.payment_method === 'mp').length,
-    transferencia: players.filter(p => p.payment_method === 'transfer').length,
-    efectivo:      players.filter(p => p.payment_method === 'efectivo').length,
+    activos:       players.filter(p => p.entry_status === 'active').length,
+    pending:       players.filter(p => p.entry_status === 'pending').length,
+    mp:            players.filter(p => p.entry_payment_method === 'mp').length,
+    transferencia: players.filter(p => p.entry_payment_method === 'transfer').length,
+    efectivo:      players.filter(p => p.entry_payment_method === 'efectivo').length,
   }
+
 
   // ── Métricas Knockout ────────────────────────────────────────────────────────
   const knockoutMetrics = {
@@ -1057,20 +1090,21 @@ export default function Admin() {
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{player.email}</div>
                       <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
                         <span style={{
-                          fontSize: '0.72rem', padding: '0.1rem 0.4rem', borderRadius: '4px',
-                          background: player.status === 'active' ? '#166534' : '#78350f',
-                          color: player.status === 'active' ? '#4ade80' : '#fbbf24'
-                        }}>
-                          {player.status === 'active' ? '✅ Activo' : '⏳ Pendiente'}
-                        </span>
-                        {player.payment_method && (
-                          <span style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
-                            {player.payment_method === 'mp'       ? '💳 MercadoPago'   :
-                             player.payment_method === 'transfer' ? '🏦 Transferencia' :
-                             player.payment_method === 'efectivo' ? '💵 Efectivo'      :
-                             player.payment_method}
+                            fontSize: '0.72rem', padding: '0.1rem 0.4rem', borderRadius: '4px',
+                            background: player.entry_status === 'active' ? '#166534' : '#78350f',
+                            color: player.entry_status === 'active' ? '#4ade80' : '#fbbf24'
+                          }}>
+                            {player.entry_status === 'active' ? '✅ Activo' : '⏳ Pendiente'}
                           </span>
-                        )}
+                          {player.entry_payment_method && (
+                            <span style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                              {player.entry_payment_method === 'mp'       ? '💳 MercadoPago'   :
+                              player.entry_payment_method === 'transfer' ? '🏦 Transferencia' :
+                              player.entry_payment_method === 'efectivo' ? '💵 Efectivo'      :
+                              player.entry_payment_method}
+                            </span>
+                          )}
+
                         <span style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'var(--bg-secondary)', color: 'var(--gold)' }}>
                           ⭐ {player.points ?? 0} pts
                         </span>
@@ -1079,7 +1113,7 @@ export default function Admin() {
 
                     {!player.is_superadmin && (
                       <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                        {player.status !== 'active' && (
+                        {player.entry_status !== 'active' && (
                           <>
                             <button className="btn"
                               onClick={() => handleConfirmPayment(player.id, 'transfer')}
