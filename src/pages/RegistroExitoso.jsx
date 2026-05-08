@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabaseClient'
 
 export default function RegistroExitoso() {
   const { user, profile, loading, profileLoading, signingOut } = useAuth()
@@ -21,6 +22,11 @@ export default function RegistroExitoso() {
       navigate('/dashboard', { replace: true })
     }
   }, [user, profile, loading, profileLoading, signingOut, navigate])
+
+  const handleVolverAlInicio = async () => {
+    await supabase.auth.signOut()
+    navigate('/', { replace: true })
+  }
 
   if (loading || profileLoading || signingOut) {
     return (
@@ -68,14 +74,22 @@ export default function RegistroExitoso() {
               Ir a estado de pago
             </Link>
           ) : (
-            <Link to="/dashboard" className="btn-mercadopago" style={{ textAlign: 'center' }}>
+            <button
+              onClick={() => navigate('/dashboard', { replace: true })}
+              className="btn-mercadopago"
+              style={{ textAlign: 'center', cursor: 'pointer' }}
+            >
               Ir al dashboard
-            </Link>
+            </button>
           )}
 
-          <Link to="/" className="auth-link" style={{ textAlign: 'center' }}>
+          <button
+            onClick={handleVolverAlInicio}
+            className="auth-link"
+            style={{ textAlign: 'center', cursor: 'pointer', background: 'none', border: 'none' }}
+          >
             Volver al inicio
-          </Link>
+          </button>
         </div>
       </div>
     </div>
