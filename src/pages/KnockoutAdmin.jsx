@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "../lib/supabaseClient";
 
-
-
 const ROUNDS = ['R32', 'R16', 'QF', 'SF', '3P', 'F'];
 const ROUND_LABELS = {
   R32: '16avos de Final',
@@ -15,18 +13,14 @@ const ROUND_LABELS = {
 
 const COMPETITION_ID = '01030879-760e-4fe3-b329-7c09c623cc58';
 
-// Formato real: "1A" -> posición 1, grupo A
-//               "2B" -> posición 2, grupo B
-//               "3ABCDF" -> posición 3, grupos A/B/C/D/F
 function parseSlot(slot) {
   if (!slot) return null;
   const match = slot.match(/^(\d+)([A-Z]+)$/);
   if (!match) return null;
   const position = parseInt(match[1]);
-  const groups = match[2].split(''); // "ABCDF" -> ["A","B","C","D","F"]
+  const groups = match[2].split('');
   return { position, groups };
 }
-
 
 export default function KnockoutAdmin() {
   const [matches, setMatches] = useState([]);
@@ -34,7 +28,7 @@ export default function KnockoutAdmin() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
   const [editingMatch, setEditingMatch] = useState(null);
-  const [groupTeams, setGroupTeams] = useState({}); // { "A": [{team, flag}, ...], ... }
+  const [groupTeams, setGroupTeams] = useState({});
 
   useEffect(() => {
     fetchMatches();
@@ -68,7 +62,6 @@ export default function KnockoutAdmin() {
       return;
     }
 
-    // Construir mapa { "A": Set de {team, flag} }
     const map = {};
     data.forEach((m) => {
       [
@@ -82,7 +75,6 @@ export default function KnockoutAdmin() {
       });
     });
 
-    // Convertir a arrays
     const result = {};
     Object.entries(map).forEach(([g, teamMap]) => {
       result[g] = Array.from(teamMap.entries()).map(([team, flag]) => ({ team, flag }));
@@ -176,49 +168,49 @@ export default function KnockoutAdmin() {
       status: isFinished ? 'finished' : 'pending',
     };
 
-                if (isFinished) {
-                const h90 = Number(updates.home_score_90);
-                const a90 = Number(updates.away_score_90);
-                const empate90 = h90 === a90;
+    if (isFinished) {
+      const h90 = Number(updates.home_score_90);
+      const a90 = Number(updates.away_score_90);
+      const empate90 = h90 === a90;
 
-                if (empate90 && !updates.went_to_extra_time) {
-                alert(
-                    '⚠️ El resultado es empate pero no se marcó "Fue a tiempo extra".\n' +
-                    'Verificá el resultado: en eliminatorias siempre debe haber un ganador.'
-                );
-                setSaving(null);
-                return;
-                }
+      if (empate90 && !updates.went_to_extra_time) {
+        alert(
+          '⚠️ El resultado es empate pero no se marcó "Fue a tiempo extra".\n' +
+          'Verificá el resultado: en eliminatorias siempre debe haber un ganador.'
+        );
+        setSaving(null);
+        return;
+      }
 
-                if (updates.went_to_extra_time) {
-                const h120 = Number(updates.home_score_120);
-                const a120 = Number(updates.away_score_120);
-                const empate120 = h120 === a120;
+      if (updates.went_to_extra_time) {
+        const h120 = Number(updates.home_score_120);
+        const a120 = Number(updates.away_score_120);
+        const empate120 = h120 === a120;
 
-                if (empate120 && !updates.went_to_penalties) {
-                    alert(
-                    '⚠️ El resultado a 120 minutos es empate pero no se marcó "Fue a penales".\n' +
-                    'Verificá el resultado: debe definirse un ganador.'
-                    );
-                    setSaving(null);
-                    return;
-                }
+        if (empate120 && !updates.went_to_penalties) {
+          alert(
+            '⚠️ El resultado a 120 minutos es empate pero no se marcó "Fue a penales".\n' +
+            'Verificá el resultado: debe definirse un ganador.'
+          );
+          setSaving(null);
+          return;
+        }
 
-                if (updates.went_to_penalties) {
-                    const hp = Number(updates.home_penalties);
-                    const ap = Number(updates.away_penalties);
+        if (updates.went_to_penalties) {
+          const hp = Number(updates.home_penalties);
+          const ap = Number(updates.away_penalties);
 
-                    if (hp === ap) {
-                    alert(
-                        '⚠️ El resultado de penales es empate.\n' +
-                        'Verificá los penales: debe haber un ganador.'
-                    );
-                    setSaving(null);
-                    return;
-                    }
-                }
-                }
-            }
+          if (hp === ap) {
+            alert(
+              '⚠️ El resultado de penales es empate.\n' +
+              'Verificá los penales: debe haber un ganador.'
+            );
+            setSaving(null);
+            return;
+          }
+        }
+      }
+    }
 
     const { error } = await supabase
       .from('knockout_matches')
@@ -233,17 +225,14 @@ export default function KnockoutAdmin() {
     }
 
     if (isFinished) {
-      // 1. Calcular puntos
       const { error: rpcError } = await supabase.rpc('calculate_knockout_points', {
         p_match_id: editingMatch.id,
       });
-      if (rpcError) console.error('Error calculando puntos:', rpcError);if (rpcError) {
-  console.error('Error calculando puntos:', rpcError);
-  alert('⚠️ Error calculando puntos: ' + rpcError.message);
-        }
+      if (rpcError) {
+        console.error('Error calculando puntos:', rpcError);
+        alert('⚠️ Error calculando puntos: ' + rpcError.message);
+      }
 
-
-      // 2. Avanzar ganador (excepto Final y 3er Puesto)
       const skipAdvance = [103, 104];
       if (!skipAdvance.includes(editingMatch.match_number)) {
         const { winnerTeam, winnerFlag, loserTeam, loserFlag } =
@@ -258,11 +247,10 @@ export default function KnockoutAdmin() {
             p_loser_flag: loserFlag || '',
             p_competition_id: COMPETITION_ID,
           });
-          if (advanceError) console.error('Error avanzando ganador:', advanceError);if (advanceError) {
+          if (advanceError) {
             console.error('Error avanzando ganador:', advanceError);
-                alert('⚠️ Error avanzando ganador: ' + advanceError.message);
-            }
-
+            alert('⚠️ Error avanzando ganador: ' + advanceError.message);
+          }
         }
       }
     }
@@ -412,15 +400,112 @@ function MatchDisplay({ match, statusLabel, onEdit }) {
   );
 }
 
+// ─── Team Dropdown con banderas ───────────────────────────────────────────────
+function TeamDropdown({ options, value, onChange, placeholder }) {
+  const [open, setOpen] = useState(false);
+
+  const selected = options.find((o) => o.team === value);
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          background: '#374151',
+          border: '1px solid #4b5563',
+          borderRadius: '6px',
+          color: selected ? '#fff' : '#9ca3af',
+          padding: '0.4rem 0.6rem',
+          fontSize: '0.875rem',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          userSelect: 'none',
+        }}
+      >
+        {selected ? (
+          <>
+            {selected.flag && (
+              <img src={selected.flag} alt="" style={{ width: '20px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />
+            )}
+            <span>{selected.team}</span>
+            <span style={{ color: '#6b7280', fontSize: '0.75rem' }}>(Grupo {selected.group})</span>
+          </>
+        ) : (
+          <span>{placeholder || '-- Seleccionar --'}</span>
+        )}
+        <span style={{ marginLeft: 'auto', color: '#9ca3af' }}>{open ? '▲' : '▼'}</span>
+      </div>
+
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            background: '#1f2937',
+            border: '1px solid #4b5563',
+            borderRadius: '6px',
+            marginTop: '4px',
+            maxHeight: '220px',
+            overflowY: 'auto',
+            zIndex: 100,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+          }}
+        >
+          <div
+            onClick={() => { onChange(''); setOpen(false); }}
+            style={{
+              padding: '0.5rem 0.75rem',
+              color: '#9ca3af',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              borderBottom: '1px solid #374151',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#374151'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            -- Seleccionar --
+          </div>
+
+          {options.map((opt) => (
+            <div
+              key={opt.team}
+              onClick={() => { onChange(opt.team); setOpen(false); }}
+              style={{
+                padding: '0.5rem 0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                cursor: 'pointer',
+                background: opt.team === value ? '#374151' : 'transparent',
+                borderBottom: '1px solid #1a2233',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#374151'}
+              onMouseLeave={(e) => e.currentTarget.style.background = opt.team === value ? '#374151' : 'transparent'}
+            >
+              {opt.flag && (
+                <img src={opt.flag} alt="" style={{ width: '24px', height: '16px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />
+              )}
+              <span style={{ color: '#fff', fontSize: '0.875rem' }}>{opt.team}</span>
+              <span style={{ color: '#6b7280', fontSize: '0.75rem', marginLeft: 'auto' }}>Grupo {opt.group}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Edit Match Form ──────────────────────────────────────────────────────────
 function EditMatchForm({ match, onChange, onSave, onCancel, saving, isR32, groupTeams }) {
   function set(field, value) {
     onChange((prev) => ({ ...prev, [field]: value }));
   }
 
-  // Cuando se elige un equipo desde el dropdown, también setear el flag automáticamente
   function handleTeamSelect(side, teamName) {
-    // Buscar el flag en groupTeams
     let foundFlag = '';
     Object.values(groupTeams).forEach((teams) => {
       const found = teams.find((t) => t.team === teamName);
@@ -430,7 +515,6 @@ function EditMatchForm({ match, onChange, onSave, onCancel, saving, isR32, group
     set(side === 'home' ? 'home_flag' : 'away_flag', foundFlag);
   }
 
-  // Obtener opciones para un slot
   function getOptionsForSlot(slot) {
     if (!slot) return [];
     const parsed = parseSlot(slot);
@@ -469,11 +553,6 @@ function EditMatchForm({ match, onChange, onSave, onCancel, saving, isR32, group
     textAlign: 'center',
   };
 
-  const selectStyle = {
-    ...inputStyle,
-    cursor: 'pointer',
-  };
-
   const homeOptions = isR32 ? getOptionsForSlot(match.home_slot) : [];
   const awayOptions = isR32 ? getOptionsForSlot(match.away_slot) : [];
 
@@ -485,6 +564,7 @@ function EditMatchForm({ match, onChange, onSave, onCancel, saving, isR32, group
 
       {/* Equipos */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+
         {/* Equipo Local */}
         <div>
           <label style={labelStyle}>
@@ -494,18 +574,13 @@ function EditMatchForm({ match, onChange, onSave, onCancel, saving, isR32, group
             )}
           </label>
           {isR32 ? (
-            <select
-              style={selectStyle}
+            // ← REEMPLAZADO: select → TeamDropdown
+            <TeamDropdown
+              options={homeOptions}
               value={match.home_team || ''}
-              onChange={(e) => handleTeamSelect('home', e.target.value)}
-            >
-              <option value="">-- Seleccionar --</option>
-              {homeOptions.map((opt) => (
-                <option key={opt.team} value={opt.team}>
-                  {opt.team} (Grupo {opt.group})
-                </option>
-              ))}
-            </select>
+              onChange={(teamName) => handleTeamSelect('home', teamName)}
+              placeholder="-- Seleccionar Local --"
+            />
           ) : (
             <input
               style={{ ...inputStyle, background: '#1f2937', color: '#6b7280', cursor: 'not-allowed' }}
@@ -524,18 +599,13 @@ function EditMatchForm({ match, onChange, onSave, onCancel, saving, isR32, group
             )}
           </label>
           {isR32 ? (
-            <select
-              style={selectStyle}
+            // ← REEMPLAZADO: select → TeamDropdown
+            <TeamDropdown
+              options={awayOptions}
               value={match.away_team || ''}
-              onChange={(e) => handleTeamSelect('away', e.target.value)}
-            >
-              <option value="">-- Seleccionar --</option>
-              {awayOptions.map((opt) => (
-                <option key={opt.team} value={opt.team}>
-                  {opt.team} (Grupo {opt.group})
-                </option>
-              ))}
-            </select>
+              onChange={(teamName) => handleTeamSelect('away', teamName)}
+              placeholder="-- Seleccionar Visitante --"
+            />
           ) : (
             <input
               style={{ ...inputStyle, background: '#1f2937', color: '#6b7280', cursor: 'not-allowed' }}
@@ -545,7 +615,7 @@ function EditMatchForm({ match, onChange, onSave, onCancel, saving, isR32, group
           )}
         </div>
 
-        {/* Flag Local - solo mostrar si es R32 o ya tiene equipo */}
+        {/* Flag Local */}
         {(isR32 || match.home_team) && (
           <div>
             <label style={labelStyle}>Flag Local (URL)</label>
@@ -572,7 +642,7 @@ function EditMatchForm({ match, onChange, onSave, onCancel, saving, isR32, group
         )}
       </div>
 
-      {/* Solo mostrar resultado si hay equipos asignados */}
+      {/* Resultado - solo si hay equipos */}
       {(match.home_team && match.away_team) && (
         <>
           {/* Resultado 90' */}
@@ -601,7 +671,7 @@ function EditMatchForm({ match, onChange, onSave, onCancel, saving, isR32, group
             </div>
           </div>
 
-          {/* Extra time toggle */}
+          {/* Extra time */}
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#fff' }}>
             <input
               type="checkbox"
@@ -646,7 +716,6 @@ function EditMatchForm({ match, onChange, onSave, onCancel, saving, isR32, group
                 />
               </div>
 
-              {/* Penalties toggle */}
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#fff', marginTop: '0.75rem' }}>
                 <input
                   type="checkbox"
@@ -694,7 +763,7 @@ function EditMatchForm({ match, onChange, onSave, onCancel, saving, isR32, group
         </>
       )}
 
-      {/* Mensaje si no hay equipos en R16+ */}
+      {/* Mensaje si R16+ sin equipos */}
       {!isR32 && (!match.home_team || !match.away_team) && (
         <div style={{
           padding: '0.75rem',
