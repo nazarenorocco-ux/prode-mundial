@@ -1110,7 +1110,9 @@ export default function Admin() {
                             background: player.entry_status === 'active' ? '#166534' : '#78350f',
                             color: player.entry_status === 'active' ? '#4ade80' : '#fbbf24'
                           }}>
-                            {player.entry_status === 'active' ? '✅ Activo' : '⏳ Pendiente'}
+                            {player.entry_status === 'active' ? '✅ Activo' 
+                              : player.entry_status === null ? '👑 Admin' 
+                              : '⏳ Pendiente'}
                           </span>
                           {player.entry_payment_method && (
                             <span style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
