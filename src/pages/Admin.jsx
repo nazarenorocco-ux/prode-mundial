@@ -911,8 +911,8 @@ export default function Admin() {
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {[
           { id: 'results',  label: '⚽ Resultados' },
-          { id: 'players',  label: '👥 Jugadores' },
-          { id: 'knockout', label: `⚡ Knockout${knockoutMetrics.pending > 0 ? ` (${knockoutMetrics.pending})` : ''}` },
+          { id: 'players',  label: '👥 Jugadores Fase de Grupos' },
+          { id: 'knockout', label: `⚡ Jugadores Fase Eliminatorias${knockoutMetrics.pending > 0 ? ` (${knockoutMetrics.pending})` : ''}` },
         ].map(tab => (
           <button
             key={tab.id}
