@@ -4,6 +4,9 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatearFechaLarga } from '../utils/dateUtils'
 
+const GROUPS_ID = 'c4e57607-7fe8-4a0a-b8a1-b0afedb9620b'
+
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const isPredictionLocked = (matchDate, prodeStatus, matchStatus) => {
   if (prodeStatus === 'closed') return true
@@ -357,6 +360,7 @@ export default function Dashboard() {
   const [error, setError] = useState('')
   const [saveCount, setSaveCount] = useState(0)
   const [matchFilter, setMatchFilter] = useState('all')
+  const [hasGroupsEntry, setHasGroupsEntry] = useState(null)
   const hasFetched = useRef(false)
   const currentUserId = useRef(null)
 
@@ -366,17 +370,26 @@ export default function Dashboard() {
       setLoading(true)
       setError('')
 
-      const [
+     const [
         { data: matchesData },
         { data: settingsData },
         { data: predsData },
-        { data: rankingData }
+        { data: rankingData },
+        { data: entryData }
       ] = await Promise.all([
         supabase.from('matches').select('*').order('match_date', { ascending: true }),
         supabase.from('settings').select('*').eq('key', 'prode_status').maybeSingle(),
         supabase.from('predictions').select('*').eq('user_id', userId),
-        supabase.from('profiles').select('id, points').order('points', { ascending: false })
+        supabase.from('profiles').select('id, points').order('points', { ascending: false }),
+        supabase
+          .from('competition_entries')
+          .select('id, status')
+          .eq('user_id', userId)
+          .eq('competition_id', GROUPS_ID)
+          .eq('status', 'active')
+          .maybeSingle()
       ])
+
 
       setMatches(matchesData || [])
       setProdeStatus(settingsData?.value || 'open')
@@ -384,6 +397,7 @@ export default function Dashboard() {
       const predMap = {}
       ;(predsData || []).forEach(p => { predMap[p.match_id] = p })
       setPredictions(predMap)
+      setHasGroupsEntry(!!entryData)
 
       // Calcular puesto
       if (rankingData) {
@@ -471,12 +485,35 @@ export default function Dashboard() {
     return m.group_name === matchFilter
   })
 
-  // ── Loading ──────────────────────────────────────────────────────────────────
-  if (loading) return (
-    <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-      Cargando partidos...
-    </div>
-  )
+  // Loading
+      if (loading || hasGroupsEntry === null) return (
+        <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+          Cargando partidos...
+        </div>
+      )
+
+      // Sin entrada activa en grupos
+      if (!hasGroupsEntry) return (
+        <div style={{ maxWidth: '600px', margin: '4rem auto', padding: '0 1.5rem', textAlign: 'center' }}>
+          <div style={{
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: '16px',
+            padding: '2.5rem 2rem'
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚽</div>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: '800', marginBottom: '0.5rem' }}>
+              No estás inscripto en la Fase de Grupos
+            </h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+              Para cargar pronósticos de la fase de grupos necesitás una inscripción activa.
+            </p>
+            <a href="/register" className="btn btn-primary">
+              Inscribirme a Grupos
+            </a>
+          </div>
+        </div>
+      )
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
