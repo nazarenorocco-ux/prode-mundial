@@ -397,7 +397,8 @@ export default function Dashboard() {
       const predMap = {}
       ;(predsData || []).forEach(p => { predMap[p.match_id] = p })
       setPredictions(predMap)
-      setHasGroupsEntry(!!entryData)
+      const isAdmin = profile?.is_admin || profile?.is_superadmin
+      setHasGroupsEntry(isAdmin ? true : !!entryData)
 
       // Calcular puesto
       if (rankingData) {
