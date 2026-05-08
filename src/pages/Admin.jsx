@@ -471,6 +471,8 @@ export default function Admin() {
   const [togglingKnockout, setTogglingKnockout]     = useState(false)
   const [groupsRegistration, setGroupsRegistration] = useState(null)
   const [togglingGroupsReg, setTogglingGroupsReg]   = useState(false)
+  const [knockoutRegistration, setKnockoutRegistration] = useState(null)
+  const [togglingKnockoutReg, setTogglingKnockoutReg]   = useState(false)
 
   // Modal
   const [modal, setModal] = useState(null)
@@ -503,6 +505,16 @@ export default function Admin() {
     fetch()
   }, [isSuperAdmin])
 
+  useEffect(() => {
+    if (!isSuperAdmin) return
+    const fetch = async () => {
+      const { data } = await supabase.from('settings').select('value').eq('key', 'knockout_registration_open').single()
+      if (data) setKnockoutRegistration(data.value)
+    }
+    fetch()
+  }, [isSuperAdmin])
+
+
   // ── Toggles superadmin ───────────────────────────────────────────────────────
   const handleToggleProdeStatus = async () => {
     setTogglingStatus(true)
@@ -526,6 +538,14 @@ export default function Admin() {
     const { error } = await supabase.from('settings').update({ value: newValue }).eq('key', 'groups_registration_open')
     if (!error) setGroupsRegistration(newValue)
     setTogglingGroupsReg(false)
+  }
+
+  const handleToggleKnockoutReg = async () => {
+  setTogglingKnockoutReg(true)
+  const newValue = knockoutRegistration === 'true' ? 'false' : 'true'
+  const { error } = await supabase.from('settings').update({ value: newValue }).eq('key', 'knockout_registration_open')
+  if (!error) setKnockoutRegistration(newValue)
+  setTogglingKnockoutReg(false)
   }
 
   // ── Guardar resultado ────────────────────────────────────────────────────────
@@ -817,6 +837,22 @@ export default function Admin() {
               disabled={togglingGroupsReg || groupsRegistration === null}
               style={{ background: groupsRegistration === 'true' ? '#dc2626' : '#16a34a', color: '#fff', border: 'none', fontWeight: '600', fontSize: '0.85rem' }}>
               {togglingGroupsReg ? 'Cambiando...' : groupsRegistration === 'true' ? '🔒 Cerrar registro' : '🔓 Abrir registro'}
+            </button>
+          </div>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)' }} />
+
+          {/* Fila 4: Registro Knockout */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ fontSize: '0.82rem', color: '#c4b5fd' }}>
+              Registro Fase Knockout:{' '}
+              <strong style={{ color: knockoutRegistration === 'true' ? '#4ade80' : '#f87171' }}>
+                {knockoutRegistration === 'true' ? '🟢 Abierto' : '🔴 Cerrado'}
+              </strong>
+            </div>
+            <button className="btn" onClick={handleToggleKnockoutReg}
+              disabled={togglingKnockoutReg || knockoutRegistration === null}
+              style={{ background: knockoutRegistration === 'true' ? '#dc2626' : '#16a34a', color: '#fff', border: 'none', fontWeight: '600', fontSize: '0.85rem' }}>
+              {togglingKnockoutReg ? 'Cambiando...' : knockoutRegistration === 'true' ? '🔒 Cerrar registro' : '🔓 Abrir registro'}
             </button>
           </div>
         </div>
