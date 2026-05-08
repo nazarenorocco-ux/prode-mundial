@@ -68,20 +68,10 @@ export default function RegistroExitoso() {
           </div>
         )}
 
-        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {isPending ? (
-            <Link to="/payment/pending" className="btn-mercadopago" style={{ textAlign: 'center' }}>
-              Ir a estado de pago
-            </Link>
-          ) : (
-            <button
-              onClick={() => navigate('/dashboard', { replace: true })}
-              className="btn-mercadopago"
-              style={{ textAlign: 'center', cursor: 'pointer' }}
-            >
-              Ir al dashboard
-            </button>
-          )}
+       <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <Link to="/payment/pending" className="btn-mercadopago" style={{ textAlign: 'center' }}>
+            Ver mi estado
+          </Link>
 
           <button
             onClick={handleVolverAlInicio}
