@@ -38,7 +38,7 @@ function PrivateRoute({ children }) {
     return <><Navbar />{children}</>
   }
 
-  if (isPending && location.pathname !== '/payment/pending') {
+  if (isPending) {
     return <Navigate to="/payment/pending" replace />
   }
 
@@ -111,12 +111,12 @@ export default function App() {
       <Route path="/registro-exitoso" element={<OpenRoute><RegistroExitoso /></OpenRoute>} />
       <Route path="/payment/success" element={<OpenRoute><PaymentSuccess /></OpenRoute>} />
       <Route path="/payment/failure" element={<OpenRoute><PaymentFailure /></OpenRoute>} />
+      <Route path="/payment/pending" element={<OpenRoute><PaymentPending /></OpenRoute>} />
 
       {/* ── Privadas ──────────────────────────────────────────────────────── */}
       <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
       <Route path="/knockout" element={<PrivateRoute><Knockout /></PrivateRoute>} />
-      <Route path="/payment/pending" element={<PrivateRoute><PaymentPending /></PrivateRoute>} />
 
       {/* ── Admin ─────────────────────────────────────────────────────────── */}
       <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
