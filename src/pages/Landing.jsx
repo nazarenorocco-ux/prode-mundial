@@ -341,7 +341,7 @@ export default function Landing() {
           </div>
         </div>
         <div className="scoring-note">
-          ⏱ Las predicciones se cierran <strong>30 minutos antes</strong> de cada partido
+          ⏱ Las predicciones se cierran <strong>30 minutos antes</strong> de cada partido. Para mayor transparencia podrás ver el pronostico de todos los usuarios ni bien se encuentre bloqueada la posibilidad de modificar los pronosticos.
         </div>
       </section>
 
