@@ -82,7 +82,7 @@ export default function Landing() {
       const { count } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'activo');
+        .eq('status', 'active');
 
       setActivePlayers(count || 0);
 
