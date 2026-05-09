@@ -1676,4 +1676,95 @@ body {
 .ko-ranking-correct { color: var(--accent);  text-align: center; }
 .ko-ranking-champ   { color: var(--gold); font-weight: 700; text-align: center; }
 
+/* ===================== */
+/* Public Predictions    */
+/* ===================== */
+
+.public-predictions {
+  margin-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.75rem;
+}
+
+.public-predictions-toggle {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.public-predictions-toggle:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.public-predictions-loading {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.public-predictions-table-wrapper {
+  margin-top: 0.75rem;
+  overflow-x: auto;
+}
+
+.public-predictions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.public-predictions-table thead tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.public-predictions-table th {
+  text-align: left;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.public-predictions-table th:last-child,
+.public-predictions-table td:last-child {
+  text-align: center;
+}
+
+.public-predictions-table td {
+  padding: 0.35rem 0.5rem;
+  color: rgba(255, 255, 255, 0.75);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.public-predictions-table tr:last-child td {
+  border-bottom: none;
+}
+
+.public-predictions-table tr.is-me td {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.me-badge {
+  display: inline-block;
+  background: rgba(99, 179, 237, 0.25);
+  color: #90cdf4;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  margin-left: 0.4rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
 

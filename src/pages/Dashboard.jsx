@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatearFechaLarga } from '../utils/dateUtils'
 import rygarLogo from '../assets/rygar-logo.png';
+import PublicPredictions from '../components/PublicPredictions'
 
 const GROUPS_ID = 'c4e57607-7fe8-4a0a-b8a1-b0afedb9620b'
 
@@ -284,9 +285,14 @@ function MatchCard({ match, pred, locked, saving, prodeStatus, onSave, saveCount
           disabled={saving}
         />
       )}
+          {/* ── Pronósticos públicos ── */}
+      {locked && (
+        <PublicPredictions matchId={match.id} />
+      )}
     </div>
   )
 }
+
 
 // ─── Mini Form ────────────────────────────────────────────────────────────────
 function PredictionMiniForm({ initialHome, initialAway, onSave, disabled, hasPrediction }) {
