@@ -362,9 +362,9 @@ export default function Landing() {
                 <div className="competition-badge">Disponible</div>
               </div>
               <h3>Fase de Grupos</h3>
-              <p>Predecí los 48 partidos de la fase de grupos del Mundial 2026</p>
+              <p>Predecí los 72 partidos de la fase de grupos del Mundial 2026</p>
               <ul className="competition-features">
-                <li>✅ 48 partidos para predecir</li>
+                <li>✅ 72 partidos para predecir</li>
                 <li>✅ 3 pts resultado exacto / 1 pt ganador</li>
                 <li>✅ Cierre 30 min antes de cada partido</li>
               </ul>
