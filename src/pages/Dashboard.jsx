@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { formatearFechaLarga } from '../utils/dateUtils'
+import rygarLogo from '../assets/rygar-logo.png';
 
 const GROUPS_ID = 'c4e57607-7fe8-4a0a-b8a1-b0afedb9620b'
 
@@ -516,17 +517,24 @@ export default function Dashboard() {
         </div>
       )
 
-  // ── Render ───────────────────────────────────────────────────────────────────
+    // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem 1.5rem' }}>
       {/* Header */}
-      <div style={{ marginBottom: '1.25rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '0.25rem' }}>
-          ⚽ Mi Prode
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Hola, <strong>{profile?.full_name || profile?.username || user?.email}</strong>
-        </p>
+      <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '0.25rem' }}>
+            ⚽ Mi Prode
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            Hola, <strong>{profile?.full_name || profile?.username || user?.email}</strong>
+          </p>
+        </div>
+        <img
+          src={rygarLogo}
+          alt="Rygar Pool & Pub"
+          style={{ width: '150px', opacity: 0.85, filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.1))' }}
+        />
       </div>
 
       {/* Banner prode cerrado */}

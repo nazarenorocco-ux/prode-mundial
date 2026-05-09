@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import KnockoutMatchCard from '../components/KnockoutMatchCard';
+import rygarLogo from '../assets/rygar-logo.png';
 
 const KNOCKOUT_COMPETITION_ID = '01030879-760e-4fe3-b329-7c09c623cc58';
 
@@ -94,12 +95,20 @@ function StepTransferInfo({ onConfirm, onBack, loading }) {
     });
   };
 
-  return (
-    <div className="main-container">
-      <div className="page-header">
+ return (
+  <div className="main-container">
+    <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div>
         <h1>🏆 Fase Eliminatoria</h1>
         <p>Mundial 2026</p>
       </div>
+      <img
+        src={rygarLogo}
+        alt="Rygar Pool & Pub"
+        style={{ width: '100px', opacity: 0.85, filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.2))' }}
+      />
+    </div>
+
 
       <div style={{
         maxWidth: 440,
@@ -788,10 +797,17 @@ export default function Knockout() {
   return (
     <div className="main-container">
 
-      {/* ── Page header ── */}
-      <div className="page-header">
-        <h1>🏆 Fase Eliminatoria</h1>
-        <p>Mundial 2026</p>
+   {/* ── Page header ── */}
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1>🏆 Fase Eliminatoria</h1>
+          <p>Mundial 2026</p>
+        </div>
+        <img
+          src={rygarLogo}
+          alt="Rygar Pool & Pub"
+          style={{ width: '150px', opacity: 0.85, filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.1))' }}
+        />
       </div>
 
       {/* ── Stats ── */}

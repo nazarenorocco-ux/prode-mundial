@@ -5,6 +5,7 @@ import { calculatePrizes, formatARS, PRIZE_TIERS, ENTRY_FEE, PRIZE_POOL_PERCENTA
 import '../styles/Landing.css';
 import { supabase, getFlagUrl } from '../lib/supabaseClient';
 import { formatearFechaLarga } from '../utils/dateUtils';
+import rygarLogo from '../assets/rygar-logo.png';
 
 const MEDAL_ICONS = ['🥇', '🥈', '🥉'];
 const POSITION_LABELS = [
@@ -154,17 +155,25 @@ export default function Landing() {
 
         <div className="hero-content">
           {/* Badge */}
-          <div className="hero-badge">
-            <span className="hero-badge-dot" />
-            Mundial 2026
+        <div className="hero-badge">
+          <span className="hero-badge-dot" />
+          Mundial 2026
+        </div>
+
+        <p className="hero-subtitle">Estados Unidos &nbsp;·&nbsp; Canadá &nbsp;·&nbsp; México</p>
+
+        {/* Título + Logo Rygar */}
+       <div className="hero-title-wrapper">
+          <img 
+             src={rygarLogo}
+            alt="Rygar Pool & Pub"
+            className="hero-sponsor-logo"
+          />
+          <div className="hero-title">
+            <span className="hero-title-prode">Prode</span>
+            <span className="hero-title-mundial">Mundial</span>
           </div>
-
-          <p className="hero-subtitle">Estados Unidos &nbsp;·&nbsp; Canadá &nbsp;·&nbsp; México</p>
-
-          <h1 className="hero-title">
-            Prode<br /><span className="hero-title-gradient">Mundial</span>
-          </h1>
-
+        </div>
           <p className="hero-date">Junio — Julio 2026</p>
 
           <div className="hero-buttons">
