@@ -885,6 +885,39 @@
     flex-direction: column;
     max-width: 400px;
     gap: 0;
+
+    /* ── LOGO HERO MOBILE ── */
+  .hero-title-wrapper {
+    flex-direction: column;
+    gap: 1rem;
+  }
+   .hero-sponsor-logo {
+    position: static;        /* saca el absolute */
+    transform: none;
+    width: 120px;            /* más pequeño en mobile */
+    margin: 0 auto;          /* centrado */
+    opacity: 0.85;
+  }
+  }
+
+@media (max-width: 480px) {
+  .stats-container {
+    flex-direction: column;
+    max-width: 400px;
+    gap: 0;
+
+    /* ── LOGO HERO MOBILE ── */
+  .hero-title-wrapper {
+    flex-direction: column;
+    gap: 1rem;
+  }
+   .hero-sponsor-logo {
+    position: static;        /* saca el absolute */
+    transform: none;
+    width: 90px;            /* más pequeño en mobile */
+    margin: 0 auto;          /* centrado */
+    opacity: 0.85;
+  }
   }
 
   .participants-card-solo {
