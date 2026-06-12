@@ -11,7 +11,7 @@ export default function Leaderboard() {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, username, points')
-        .eq('status', 'activo')
+        .eq('status', 'active')
         .order('points', { ascending: false })
 
       if (error) throw error
