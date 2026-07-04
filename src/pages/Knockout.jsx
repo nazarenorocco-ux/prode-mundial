@@ -589,11 +589,11 @@ export default function Knockout() {
   }, [user]);
 
   const checkChampionLock = useCallback(() => {
-    const firstR32 = matches
-      .filter(m => m.round === 'R32' && m.match_date)
+    const firstR16 = matches
+      .filter(m => m.round === 'R16' && m.match_date)
       .sort((a, b) => new Date(a.match_date) - new Date(b.match_date))[0];
-    if (!firstR32) { setChampionLocked(false); return; }
-    setChampionLocked(isMatchLocked(firstR32.match_date));
+    if (!firstR16) { setChampionLocked(false); return; }
+    setChampionLocked(isMatchLocked(firstR16.match_date));
   }, [matches]);
 
   // ─── Guardar campeón ──────────────────────────────────────────────────────
@@ -845,7 +845,7 @@ export default function Knockout() {
           <div>
             <p className="ko-champion-title">🥇 Campeón del Mundial</p>
             <p className="ko-champion-sub">
-              Vale 10 puntos · Se bloquea 30 min antes del primer partido
+              Vale 10 puntos · Se bloquea al inicio de 8avos de final
             </p>
           </div>
           {championLocked && (
