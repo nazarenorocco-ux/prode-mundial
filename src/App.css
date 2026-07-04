@@ -56,6 +56,12 @@ body {
   padding: 1.5rem 1rem;
 }
 
+/* ===== KNOCKOUT — WIDE CONTAINER ===== */
+.main-container--wide {
+  max-width: 1100px;
+}
+
+
 /* ===== NAVBAR ===== */
 .navbar {
   background: var(--surface);

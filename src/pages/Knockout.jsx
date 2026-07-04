@@ -795,7 +795,7 @@ export default function Knockout() {
   // ─── Render principal ──────────────────────────────────────────────────────
 
   return (
-    <div className="main-container">
+    <div className="main-container main-container--wide">
 
    {/* ── Page header ── */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
