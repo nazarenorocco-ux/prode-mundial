@@ -1,7 +1,7 @@
-// KnockoutMatchCard.jsx
+// src/components/KnockoutMatchCard.jsx
 import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import { formatMatchDate } from '../utils/dateUtils';
-
 
 function PointsBadge({ isFinished, prediction }) {
   if (!isFinished || !prediction) return null;
@@ -11,8 +11,149 @@ function PointsBadge({ isFinished, prediction }) {
   return <span className="points-badge points-none">✗ {pts} pts</span>;
 }
 
+// ─── Sub-componente: lista de pronósticos públicos ────────────────────────────
+function PublicPredictions({ matchId, currentUserId }) {
+  const [preds, setPreds]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen]       = useState(false);
 
-export default function KnockoutMatchCard({ match, prediction, locked, onSave }) {
+  useEffect(() => {
+    if (!matchId) return;
+    supabase
+      .rpc('get_public_knockout_predictions', { p_match_id: matchId })
+      .then(({ data }) => {
+        setPreds(data || []);
+        setLoading(false);
+      });
+  }, [matchId]);
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '0.5rem 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+        Cargando pronósticos…
+      </div>
+    );
+  }
+
+  if (preds.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '0.5rem 0', fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+        Nadie pronosticó este partido aún
+      </div>
+    );
+  }
+
+  // Siempre mostrar el pronóstico del usuario actual primero
+  const sorted = [...preds].sort((a, b) => {
+    if (a.user_id === currentUserId) return -1;
+    if (b.user_id === currentUserId) return 1;
+    return (a.full_name || a.username || '').localeCompare(b.full_name || b.username || '');
+  });
+
+  // Mostrar solo 3 primeros si está colapsado
+  const PREVIEW_COUNT = 3;
+  const visible = open ? sorted : sorted.slice(0, PREVIEW_COUNT);
+  const hasMore  = sorted.length > PREVIEW_COUNT;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+      {visible.map((p) => {
+        const isMe  = p.user_id === currentUserId;
+        const name  = p.full_name || p.username || 'Anónimo';
+        const pts   = p.points ?? 0;
+        const hasPen = p.home_penalties != null && p.away_penalties != null;
+
+        return (
+          <div
+            key={p.user_id}
+            style={{
+              display:        'flex',
+              alignItems:     'center',
+              justifyContent: 'space-between',
+              padding:        '0.35rem 0.6rem',
+              borderRadius:   6,
+              background:     isMe
+                ? 'rgba(56,189,248,0.12)'
+                : 'rgba(255,255,255,0.04)',
+              border: isMe
+                ? '1px solid rgba(56,189,248,0.3)'
+                : '1px solid transparent',
+              fontSize: '0.78rem',
+              gap: '0.5rem',
+            }}
+          >
+            {/* Nombre */}
+            <span style={{
+              color:     isMe ? '#38bdf8' : 'var(--text)',
+              fontWeight: isMe ? 700 : 400,
+              flex: 1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
+              {isMe ? '👤 Vos' : name}
+            </span>
+
+            {/* Score */}
+            <span style={{
+              fontWeight: 700,
+              color: 'var(--text-h)',
+              flexShrink: 0,
+              minWidth: 44,
+              textAlign: 'center',
+            }}>
+              {p.home_score} – {p.away_score}
+              {hasPen && (
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', lineHeight: 1 }}>
+                  pen. {p.home_penalties}–{p.away_penalties}
+                </span>
+              )}
+            </span>
+
+            {/* Puntos (solo si hay) */}
+            {pts > 0 && (
+              <span style={{
+                flexShrink: 0,
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                padding: '0.1rem 0.4rem',
+                borderRadius: 4,
+                background: pts >= 3 ? 'rgba(74,222,128,0.15)' : 'rgba(96,165,250,0.15)',
+                color:      pts >= 3 ? '#4ade80' : '#60a5fa',
+              }}>
+                {pts >= 3 ? '⭐' : '✓'} {pts}
+              </span>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Botón ver más / menos */}
+      {hasMore && (
+        <button
+          onClick={() => setOpen(o => !o)}
+          style={{
+            background: 'none',
+            border:     'none',
+            color:      'var(--text-muted)',
+            fontSize:   '0.75rem',
+            cursor:     'pointer',
+            padding:    '0.25rem 0',
+            textAlign:  'center',
+          }}
+        >
+          {open
+            ? '▲ Ver menos'
+            : `▼ Ver ${sorted.length - PREVIEW_COUNT} más`
+          }
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
+export default function KnockoutMatchCard({ match, prediction, locked, onSave, currentUserId }) {
   const {
     id,
     home_team, away_team,
@@ -38,7 +179,9 @@ export default function KnockoutMatchCard({ match, prediction, locked, onSave })
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
 
-  // Inicializar con predicción existente
+  // ─── Sección pronósticos públicos: toggle ────────────────────────────────
+  const [showPublic, setShowPublic] = useState(false);
+
   useEffect(() => {
     if (prediction) {
       setHomeScore(prediction.home_score ?? '');
@@ -48,15 +191,12 @@ export default function KnockoutMatchCard({ match, prediction, locked, onSave })
     }
   }, [prediction]);
 
-  // ─── ¿Es empate en la predicción? (mostrar penales) ──────────────────────
   const isDraw = homeScore !== '' && awayScore !== '' &&
                  Number(homeScore) === Number(awayScore);
 
-  // ─── Guardar ──────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (locked || !teamsAssigned || saving) return;
     if (homeScore === '' || awayScore === '') return;
-
     setSaving(true);
     try {
       await onSave(
@@ -73,12 +213,10 @@ export default function KnockoutMatchCard({ match, prediction, locked, onSave })
     }
   };
 
-  // ─── Resultado final a mostrar ────────────────────────────────────────────
   const finalHome = home_score_120 ?? home_score_90;
   const finalAway = away_score_120 ?? away_score_90;
 
- // ─── Color de borde lateral izquierdo según estado ───────────────────────
-  const cardStyle = useMemo( () => {
+  const cardStyle = useMemo(() => {
     if (isFinished) {
       const pts = prediction?.points ?? null;
       if (pts === null) return {};
@@ -92,10 +230,10 @@ export default function KnockoutMatchCard({ match, prediction, locked, onSave })
     return {};
   }, [isFinished, locked, teamsAssigned, prediction]);
 
-
- // ─── Badge de puntos ──────────────────────────────────────────────────────
   const pointsBadge = <PointsBadge isFinished={isFinished} prediction={prediction} />;
 
+  // ─── La sección pública se muestra si locked O finished ──────────────────
+  const showPublicSection = (locked || isFinished) && teamsAssigned;
 
   return (
     <div className="match-card" style={cardStyle}>
@@ -127,8 +265,6 @@ export default function KnockoutMatchCard({ match, prediction, locked, onSave })
 
         {/* Centro */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', flexShrink: 0, minWidth: 80 }}>
-
-          {/* Resultado oficial (partido terminado) */}
           {isFinished && finalHome !== null && finalAway !== null && (
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-h)', lineHeight: 1 }}>
@@ -145,7 +281,6 @@ export default function KnockoutMatchCard({ match, prediction, locked, onSave })
             </div>
           )}
 
-          {/* Inputs / estado bloqueado */}
           {!teamsAssigned ? (
             <span style={{ fontSize: '1.3rem' }} title="Equipos aún no definidos">🔒</span>
           ) : locked ? (
@@ -168,28 +303,19 @@ export default function KnockoutMatchCard({ match, prediction, locked, onSave })
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-              {/* Score inputs */}
               <div className="score-input">
                 <input
-                  type="number"
-                  min="0"
-                  max="20"
-                  value={homeScore}
+                  type="number" min="0" max="20" value={homeScore}
                   onChange={e => setHomeScore(e.target.value)}
                   style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
                 />
                 <span className="score-separator">–</span>
                 <input
-                  type="number"
-                  min="0"
-                  max="20"
-                  value={awayScore}
+                  type="number" min="0" max="20" value={awayScore}
                   onChange={e => setAwayScore(e.target.value)}
                   style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
                 />
               </div>
-
-              {/* Penales (solo si empate) */}
               {isDraw && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -197,33 +323,15 @@ export default function KnockoutMatchCard({ match, prediction, locked, onSave })
                   </span>
                   <div className="score-input">
                     <input
-                      type="number"
-                      min="0"
-                      max="20"
-                      value={homePen}
-                      onChange={e => setHomePen(e.target.value)}
-                      placeholder="0"
-                      style={{
-                        WebkitAppearance: 'none', MozAppearance: 'textfield',
-                        borderColor: 'rgba(234,179,8,0.5)',
-                        color: '#fde047',
-                        width: 44,
-                      }}
+                      type="number" min="0" max="20" value={homePen}
+                      onChange={e => setHomePen(e.target.value)} placeholder="0"
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'textfield', borderColor: 'rgba(234,179,8,0.5)', color: '#fde047', width: 44 }}
                     />
                     <span className="score-separator">–</span>
                     <input
-                      type="number"
-                      min="0"
-                      max="20"
-                      value={awayPen}
-                      onChange={e => setAwayPen(e.target.value)}
-                      placeholder="0"
-                      style={{
-                        WebkitAppearance: 'none', MozAppearance: 'textfield',
-                        borderColor: 'rgba(234,179,8,0.5)',
-                        color: '#fde047',
-                        width: 44,
-                      }}
+                      type="number" min="0" max="20" value={awayPen}
+                      onChange={e => setAwayPen(e.target.value)} placeholder="0"
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'textfield', borderColor: 'rgba(234,179,8,0.5)', color: '#fde047', width: 44 }}
                     />
                   </div>
                 </div>
@@ -257,15 +365,9 @@ export default function KnockoutMatchCard({ match, prediction, locked, onSave })
 
       {/* ── Footer: fecha / estadio / puntos / botón ── */}
       <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-        paddingTop: '0.6rem',
-        borderTop: '1px solid var(--border)',
-        marginTop: '0.2rem',
+        display: 'flex', flexDirection: 'column', gap: '0.5rem',
+        paddingTop: '0.6rem', borderTop: '1px solid var(--border)', marginTop: '0.2rem',
       }}>
-
-        {/* Fecha + estadio */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
             {match_date
@@ -281,7 +383,6 @@ export default function KnockoutMatchCard({ match, prediction, locked, onSave })
           )}
         </div>
 
-        {/* Acción / puntos */}
         {isFinished && prediction ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
             {pointsBadge}
@@ -310,8 +411,8 @@ export default function KnockoutMatchCard({ match, prediction, locked, onSave })
             disabled={saving || homeScore === '' || awayScore === ''}
             className="btn btn-primary btn-full"
             style={
-              saved    ? { background: 'var(--success)', color: '#0f172a' } :
-              saving   ? { opacity: 0.6, cursor: 'wait' } :
+              saved  ? { background: 'var(--success)', color: '#0f172a' } :
+              saving ? { opacity: 0.6, cursor: 'wait' } :
               (homeScore === '' || awayScore === '') ? { opacity: 0.45, cursor: 'not-allowed' } :
               {}
             }
@@ -320,6 +421,46 @@ export default function KnockoutMatchCard({ match, prediction, locked, onSave })
           </button>
         )}
       </div>
+
+      {/* ══ SECCIÓN PRONÓSTICOS PÚBLICOS ══════════════════════════════════════ */}
+      {showPublicSection && (
+        <div style={{
+          marginTop:    '0.75rem',
+          paddingTop:   '0.75rem',
+          borderTop:    '1px solid var(--border)',
+        }}>
+          {/* Toggle header */}
+          <button
+            onClick={() => setShowPublic(o => !o)}
+            style={{
+              width:          '100%',
+              background:     'none',
+              border:         'none',
+              cursor:         'pointer',
+              display:        'flex',
+              alignItems:     'center',
+              justifyContent: 'space-between',
+              padding:        '0',
+              marginBottom:   showPublic ? '0.6rem' : '0',
+            }}
+          >
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>
+              👥 Pronósticos de todos
+            </span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              {showPublic ? '▲' : '▼'}
+            </span>
+          </button>
+
+          {/* Lista */}
+          {showPublic && (
+            <PublicPredictions
+              matchId={id}
+              currentUserId={currentUserId}
+            />
+          )}
+        </div>
+      )}
 
     </div>
   );

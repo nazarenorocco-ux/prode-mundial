@@ -962,6 +962,7 @@ export default function Knockout() {
                   prediction={predictions[match.id] || null}
                   locked={isMatchLocked(match.match_date)}
                   onSave={savePrediction}
+                  currentUserId={user?.id} 
                 />
               ))}
             </div>
